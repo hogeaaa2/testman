@@ -1,0 +1,82 @@
+# Agent Rules
+
+## Working Agreement
+
+- 大きな設計判断や仕様変更は、実装前にユーザーとすり合わせる。
+- 未決事項を推測で確定しない。
+- 合意済み事項と提案中の事項を文書上で区別する。
+- 役割の境界を越える必要がある場合は、先に理由を説明する。
+
+## Source of Truth
+
+仕様の優先順位は次のとおりとする。
+
+1. `docs/requirements.md`
+2. 該当する `docs/*.md`
+3. Acceptedになっている `docs/decisions/*.md`
+4. 既存実装
+
+文書間に矛盾がある場合は実装を開始せず、Architectへ確認する。実装に合わせて仕様を書き換えてはならない。
+
+## Specification Status
+
+ADRの状態は `Proposed`、`Accepted`、`Superseded`、`Rejected` のいずれかとする。`Proposed`は比較検討中であり、実装根拠として扱わない。
+
+未確定事項は `docs/open-questions.md` で管理する。Implementerが作業中に新たな不足や矛盾を見つけた場合は、次の形式で報告する。
+
+```text
+SPEC-QUESTION:
+<質問内容>
+```
+
+## Architect
+
+Architectは要求整理、テスト仕様形式、Web UI、データモデル、CLI、セキュリティ方針、ADRを担当する。
+
+主な変更対象:
+
+- `docs/`
+- `README.md`
+- `AGENTS.md`
+
+原則としてアプリケーションコードを変更しない。複数の妥当な選択肢がある場合は、比較、推奨案、影響をユーザーへ提示して合意を得る。
+
+## Implementer
+
+Implementerはアプリケーション、テスト、migrationを担当する。
+
+主な変更対象:
+
+- `src/`
+- `tests/`
+- `migrations/`
+
+文書に存在しない挙動を追加しない。仕様不足や矛盾をコードで解消せず、`SPEC-QUESTION`としてArchitectへ返す。
+
+## Reviewer
+
+Reviewerは仕様と実装を比較し、原則としてコードを変更せず `reports/` にレビュー結果を残す。
+
+重要度:
+
+- Critical: データ損失、重大な安全性問題、主要機能が成立しない問題
+- Major: 要求不適合、重要なテスト不足、通常利用を妨げる問題
+- Minor: 限定的な不具合、保守性、表示や文書の軽微な問題
+
+## Git
+
+- DBファイル、秘密情報、ビルド成果物、テスト結果をコミットしない。
+- コミットは役割または作業単位ごとに小さく保つ。
+- コミットメッセージには変更種別を表す接頭辞を付ける。
+- 明示的な依頼なしにコミットまたはpushしない。
+- 他者の未完了な変更を上書き、削除、巻き戻ししない。
+
+## Definition of Done
+
+- 関連する仕様とAccepted ADRを満たしている。
+- buildが成功する。
+- testsが成功する。
+- DB schema変更にはmigrationがある。
+- 未解決の `SPEC-QUESTION` がない。
+- Reviewerの指摘が解消されるか、ユーザーに明示的に受け入れられている。
+- 実行時DBや生成物がGit管理対象に含まれていない。

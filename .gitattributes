@@ -1,0 +1,14 @@
+# Use CRLF in the Windows working tree for text files.
+* text=auto eol=crlf
+
+# Keep cross-platform shell scripts usable when they are added.
+*.sh text eol=lf
+
+# Binary files must not be modified by line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
