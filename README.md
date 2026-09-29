@@ -6,7 +6,7 @@
 
 ## 現在の状態
 
-現在はArchitect段階です。要求、設計候補、未決事項をMarkdownに整理しており、アプリケーション実装はまだ開始していません。
+要求とV0.1の主要な設計判断は確定済みです。テスト仕様形式は [test-format.md](docs/test-format.md)、未決事項は [open-questions.md](docs/open-questions.md) を参照してください。アプリケーション実装はまだ開始していません。
 
 ## 想定する利用方法
 
@@ -18,20 +18,21 @@
 
 テスト仕様ファイルはGitで管理します。実行時に作成されるSQLiteデータベースはGitで管理しません。
 
-## 技術候補
+## 技術選定
 
 - C# / .NET 10 LTS
 - ASP.NET Core Razor Pages
 - SQLite / Microsoft.Data.Sqlite
 - xUnit
 
-技術選定は [ADR-001](docs/decisions/ADR-001-web-application-architecture.md) の承認後に確定します。
+これらの技術選定とlocalhost限定の構成は [ADR-001](docs/decisions/ADR-001-web-application-architecture.md) で承認済みです。
 
 ## 文書
 
 - [要求仕様](docs/requirements.md)
 - [製品コンセプト](docs/product-concept.md)
 - [テスト仕様形式の候補](docs/test-format-options.md)
+- [正式なテスト仕様形式](docs/test-format.md)
 - [Web UI](docs/web-ui.md)
 - [データベース](docs/database.md)
 - [CLIと起動方法](docs/cli.md)

@@ -11,7 +11,7 @@
 
 テスト仕様ファイルがSource of Truthであり、Web UIには現在のファイル内容を直接表示する。実施結果は追記型の履歴としてSQLiteへ保存する。過去の仕様本文はGitで確認し、Webアプリケーション内では復元しない。
 
-## Proposed Decision
+## Decision
 
 - C# / .NET 10 LTSを使用する。
 - ASP.NET Core Razor PagesでサーバーサイドWeb UIを作る。
