@@ -16,16 +16,7 @@ CLIは製品の主画面ではなく、Webサーバーの起動や管理操作�
 testman serve --specs ./testspecs
 ```
 
-起動時に仕様を検証・読込し、localhostでWeb画面を提供する。
-
-### importを分離する案
-
-```text
-testman import ./testspecs
-testman serve
-```
-
-仕様の検証と反映を明示的に分けられるが、利用者が同期操作を忘れる可能性がある。
+localhostでWeb画面を提供する。画面表示時には仕様ファイルを原本として直接読み込み、SQLiteへ仕様本文をimportしない。
 
 ### 仕様ディレクトリを監視する案
 
@@ -33,7 +24,7 @@ testman serve
 
 ## 暫定推奨
 
-V0.1では `serve` の起動時に仕様ファイルを検証・読込する案を第一候補とする。明示的な `import` は、独立させる必要性が確認できた場合に追加する。
+V0.1では `serve` でlocalhostにWeb画面を提供し、画面表示時に現在の仕様ファイルを直接読み込む。仕様本文をSQLiteへimportするコマンドは設けない。
 
 ## 未決事項
 

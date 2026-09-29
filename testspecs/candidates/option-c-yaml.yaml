@@ -1,0 +1,48 @@
+# Comparison sample only. This file does not define the accepted test specification format.
+suite:
+  title: Login tests
+  overview: >-
+    Verify that an active user can log in with valid credentials and that
+    invalid or incomplete credentials are rejected without exposing account
+    information.
+  tests:
+    - id: T-AUTH-001
+      title: Valid login
+      preconditions:
+        - The user `alice@example.com` exists and is active.
+      steps:
+        - action: Open the login page.
+          expected: The login form is displayed.
+        - action: Enter `alice@example.com` and the valid password.
+          expected: The entered email address is visible and the password is masked.
+        - action: Submit the form.
+          expected: The dashboard is displayed.
+      notes: >-
+        Use the standard test account. Do not record its password in this
+        specification.
+    - id: T-AUTH-002
+      title: Login with an invalid password
+      preconditions:
+        - The user `alice@example.com` exists and is active.
+      steps:
+        - action: Open the login page.
+          expected: The login form is displayed.
+        - action: Enter `alice@example.com` and an invalid password.
+          expected: The entered email address is visible and the password is masked.
+        - action: Submit the form.
+          expected: >-
+            An authentication error is displayed and the dashboard is not displayed.
+      notes: >-
+        Confirm that the message does not reveal whether the account exists.
+    - id: T-AUTH-003
+      title: Login with a blank password
+      preconditions:
+        - The user `alice@example.com` exists and is active.
+      steps:
+        - action: Open the login page.
+          expected: The login form is displayed.
+        - action: Enter `alice@example.com` and leave the password blank.
+          expected: The entered email address is visible and the password field is blank.
+        - action: Submit the form.
+          expected: >-
+            A validation error is displayed and the dashboard is not displayed.
