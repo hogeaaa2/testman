@@ -1,6 +1,8 @@
 using Markdig;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
+using System.Text;
 
 namespace Testman.Core.Specifications;
 
@@ -11,6 +13,8 @@ public static class TestSpecificationParser
         .Build();
 
     private static readonly string[] RequiredSections = ["Overview", "Preconditions", "Common steps"];
+    private static readonly string[] RequiredColumns =
+        ["ID", "Major item", "Middle item", "Minor item", "Steps", "Expected result"];
 
     public static TestSpecificationParseResult Parse(string source, string sourcePath)
     {
@@ -89,6 +93,26 @@ public static class TestSpecificationParser
                 continue;
             }
 
+            var table = (Table)tables[0].block;
+            var rows = table.OfType<TableRow>().ToList();
+            var headerRow = rows.SingleOrDefault(row => row.IsHeader);
+            var columns = headerRow?
+                .OfType<TableCell>()
+                .Select(ReadCellText)
+                .ToArray();
+
+            if (columns is null || !columns.SequenceEqual(RequiredColumns, StringComparer.Ordinal))
+            {
+                diagnostics.Add(new SpecificationDiagnostic(sourcePath, table.Line + 1, "Test case table columns do not match the approved names and order."));
+                continue;
+            }
+
+            if (!rows.Any(row => !row.IsHeader))
+            {
+                diagnostics.Add(new SpecificationDiagnostic(sourcePath, table.Line + 1, "Test case table must contain one or more test case rows."));
+                continue;
+            }
+
             titles.Add(new TestSpecificationTitle(titleName, heading.Line + 1));
         }
 
@@ -101,6 +125,42 @@ public static class TestSpecificationParser
         var lineLength = heading.Span.End - heading.Span.Start + 1;
         var line = source.AsSpan(lineStart, lineLength).Trim();
         return line.TrimStart('#').Trim().TrimEnd('#').Trim().ToString();
+    }
+
+    private static string ReadCellText(TableCell cell)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var paragraph in cell.OfType<ParagraphBlock>())
+        {
+            AppendInlineText(paragraph.Inline, builder);
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendInlineText(ContainerInline? container, StringBuilder builder)
+    {
+        if (container is null)
+        {
+            return;
+        }
+
+        foreach (var inline in container)
+        {
+            switch (inline)
+            {
+                case LiteralInline literal:
+                    builder.Append(literal.Content);
+                    break;
+                case CodeInline code:
+                    builder.Append(code.Content);
+                    break;
+                case ContainerInline nested:
+                    AppendInlineText(nested, builder);
+                    break;
+            }
+        }
     }
 }
 

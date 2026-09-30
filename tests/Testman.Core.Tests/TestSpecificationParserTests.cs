@@ -95,6 +95,47 @@ public sealed class TestSpecificationParserTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("exactly one", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void Parse_omits_a_title_when_table_columns_do_not_match_the_approved_names()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("| ID | Major item | Middle item | Minor item | Steps | Expected result |",
+                "| ID | Major item | Middle item | Minor item | Steps | Expected Result |");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        Assert.Empty(result.Titles);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("columns", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Parse_omits_a_title_when_table_has_an_extra_column()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("| ID | Major item | Middle item | Minor item | Steps | Expected result |",
+                "| ID | Major item | Middle item | Minor item | Steps | Expected result | Notes |")
+            .Replace("|---|---|---|---|---|---|", "|---|---|---|---|---|---|---|")
+            .Replace("| TC-1 | - | - | Login | - | Dashboard is displayed. |",
+                "| TC-1 | - | - | Login | - | Dashboard is displayed. | Note |");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        Assert.Empty(result.Titles);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("columns", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Parse_omits_a_title_when_table_has_no_test_case_rows()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("| TC-1 | - | - | Login | - | Dashboard is displayed. |", string.Empty);
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        Assert.Empty(result.Titles);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("one or more", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static string ValidSpecification(string title, string id) =>
         $"Testman-Format-Version: 1\n\n{ValidTitleBlock(title, id)}";
 
