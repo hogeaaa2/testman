@@ -15,6 +15,7 @@ public static class TestSpecificationParser
     private static readonly string[] RequiredSections = ["Overview", "Preconditions", "Common steps"];
     private static readonly string[] RequiredColumns =
         ["ID", "Major item", "Middle item", "Minor item", "Steps", "Expected result"];
+    private static readonly int[] RequiredCellIndexes = [0, 1, 2, 3, 5];
 
     public static TestSpecificationParseResult Parse(string source, string sourcePath)
     {
@@ -113,8 +114,53 @@ public static class TestSpecificationParser
                 continue;
             }
 
-            titles.Add(new TestSpecificationTitle(titleName, heading.Line + 1));
+            var testCases = new List<TestSpecificationCase>();
+            foreach (var row in rows.Where(row => !row.IsHeader))
+            {
+                var cells = row
+                    .OfType<TableCell>()
+                    .Select(cell => ReadCellSource(source, cell))
+                    .ToArray();
+
+                var canRegisterResult = true;
+                if (cells.Length != RequiredColumns.Length)
+                {
+                    diagnostics.Add(new SpecificationDiagnostic(sourcePath, row.Line + 1, "Test case row does not contain the approved number of cells."));
+                    canRegisterResult = false;
+                    Array.Resize(ref cells, RequiredColumns.Length);
+                    for (var index = 0; index < cells.Length; index++)
+                    {
+                        cells[index] ??= string.Empty;
+                    }
+                }
+
+                foreach (var requiredIndex in RequiredCellIndexes.Where(index => string.IsNullOrEmpty(cells[index])))
+                {
+                    diagnostics.Add(new SpecificationDiagnostic(sourcePath, row.Line + 1, $"Required cell '{RequiredColumns[requiredIndex]}' must not be empty."));
+                    canRegisterResult = false;
+                }
+
+                if (!string.IsNullOrEmpty(cells[0]) && !TestId.TryParse(cells[0], out _))
+                {
+                    diagnostics.Add(new SpecificationDiagnostic(sourcePath, row.Line + 1, $"Invalid Test ID: {cells[0]}"));
+                    canRegisterResult = false;
+                }
+
+                testCases.Add(new TestSpecificationCase(
+                    cells[0],
+                    cells[1],
+                    cells[2],
+                    cells[3],
+                    cells[4],
+                    cells[5],
+                    row.Line + 1,
+                    canRegisterResult));
+            }
+
+            titles.Add(new TestSpecificationTitle(titleName, heading.Line + 1, testCases));
         }
+
+        DisableDuplicateIds(titles, diagnostics, sourcePath);
 
         return new TestSpecificationParseResult(titles, diagnostics);
     }
@@ -137,6 +183,53 @@ public static class TestSpecificationParser
         }
 
         return builder.ToString();
+    }
+
+    private static string ReadCellSource(string source, TableCell cell)
+    {
+        if (cell.Span.Start < 0 || cell.Span.End < cell.Span.Start)
+        {
+            return ReadCellText(cell);
+        }
+
+        return source.AsSpan(cell.Span.Start, cell.Span.End - cell.Span.Start + 1).Trim().ToString();
+    }
+
+    private static void DisableDuplicateIds(
+        List<TestSpecificationTitle> titles,
+        List<SpecificationDiagnostic> diagnostics,
+        string sourcePath)
+    {
+        var duplicateIds = titles
+            .SelectMany(title => title.TestCases)
+            .Where(testCase => TestId.TryParse(testCase.Id, out _))
+            .GroupBy(testCase => testCase.Id, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (duplicateIds.Count == 0)
+        {
+            return;
+        }
+
+        for (var titleIndex = 0; titleIndex < titles.Count; titleIndex++)
+        {
+            var title = titles[titleIndex];
+            titles[titleIndex] = title with
+            {
+                TestCases = title.TestCases
+                    .Select(testCase => duplicateIds.Contains(testCase.Id)
+                        ? testCase with { CanRegisterResult = false }
+                        : testCase)
+                    .ToList(),
+            };
+        }
+
+        diagnostics.Add(new SpecificationDiagnostic(
+            sourcePath,
+            null,
+            $"Duplicated ID detected: {string.Join(", ", duplicateIds.Order(StringComparer.Ordinal))}"));
     }
 
     private static void AppendInlineText(ContainerInline? container, StringBuilder builder)
@@ -164,7 +257,20 @@ public static class TestSpecificationParser
     }
 }
 
-public sealed record TestSpecificationTitle(string Name, int LineNumber);
+public sealed record TestSpecificationTitle(
+    string Name,
+    int LineNumber,
+    IReadOnlyList<TestSpecificationCase> TestCases);
+
+public sealed record TestSpecificationCase(
+    string Id,
+    string MajorItem,
+    string MiddleItem,
+    string MinorItem,
+    string Steps,
+    string ExpectedResult,
+    int LineNumber,
+    bool CanRegisterResult);
 
 public sealed record SpecificationDiagnostic(string SourcePath, int? LineNumber, string Reason);
 

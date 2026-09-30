@@ -11,6 +11,14 @@ public sealed class TestSpecificationParserTests
 
         var title = Assert.Single(result.Titles);
         Assert.Equal("Login tests", title.Name);
+        var testCase = Assert.Single(title.TestCases);
+        Assert.Equal("TC-1", testCase.Id);
+        Assert.Equal("-", testCase.MajorItem);
+        Assert.Equal("-", testCase.MiddleItem);
+        Assert.Equal("Login", testCase.MinorItem);
+        Assert.Equal("-", testCase.Steps);
+        Assert.Equal("Dashboard is displayed.", testCase.ExpectedResult);
+        Assert.True(testCase.CanRegisterResult);
         Assert.Empty(result.Diagnostics);
     }
 
@@ -134,6 +142,68 @@ public sealed class TestSpecificationParserTests
 
         Assert.Empty(result.Titles);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("one or more", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Parse_allows_an_empty_steps_cell()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("| TC-1 | - | - | Login | - | Dashboard is displayed. |",
+                "| TC-1 | - | - | Login |  | Dashboard is displayed. |");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        var testCase = Assert.Single(Assert.Single(result.Titles).TestCases);
+        Assert.Equal(string.Empty, testCase.Steps);
+        Assert.True(testCase.CanRegisterResult);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("|  | - | - | Login | - | Dashboard is displayed. |", "ID")]
+    [InlineData("| TC-1 |  | - | Login | - | Dashboard is displayed. |", "Major item")]
+    [InlineData("| TC-1 | - |  | Login | - | Dashboard is displayed. |", "Middle item")]
+    [InlineData("| TC-1 | - | - |  | - | Dashboard is displayed. |", "Minor item")]
+    [InlineData("| TC-1 | - | - | Login | - |  |", "Expected result")]
+    public void Parse_disables_a_row_when_a_required_cell_is_empty(string replacementRow, string expectedColumn)
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("| TC-1 | - | - | Login | - | Dashboard is displayed. |", replacementRow);
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        var testCase = Assert.Single(Assert.Single(result.Titles).TestCases);
+        Assert.False(testCase.CanRegisterResult);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains(expectedColumn, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Parse_disables_a_row_when_test_id_is_invalid()
+    {
+        var source = ValidSpecification("Login tests", "TC-01");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        var testCase = Assert.Single(Assert.Single(result.Titles).TestCases);
+        Assert.Equal("TC-01", testCase.Id);
+        Assert.False(testCase.CanRegisterResult);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("Invalid Test ID", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Parse_disables_each_row_with_a_duplicate_test_id()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("| TC-1 | - | - | Login | - | Dashboard is displayed. |",
+                "| TC-1 | - | - | Login | - | Dashboard is displayed. |\n"
+                + "| TC-1 | - | - | Logout | - | Login page is displayed. |");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        var testCases = Assert.Single(result.Titles).TestCases;
+        Assert.Equal(2, testCases.Count);
+        Assert.All(testCases, testCase => Assert.False(testCase.CanRegisterResult));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("Duplicated ID detected: TC-1", StringComparison.Ordinal));
     }
 
     private static string ValidSpecification(string title, string id) =>
