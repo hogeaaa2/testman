@@ -158,7 +158,17 @@ public static class TestSpecificationParser
                     canRegisterResult));
             }
 
-            titles.Add(new TestSpecificationTitle(titleName, heading.Line + 1, testCases));
+            var overviewMarkdown = ReadBlockSource(source, titleBlocks, sectionIndexes[0] + 1, sectionIndexes[1]);
+            var preconditionsMarkdown = ReadBlockSource(source, titleBlocks, sectionIndexes[1] + 1, sectionIndexes[2]);
+            var commonStepsMarkdown = ReadBlockSource(source, titleBlocks, sectionIndexes[2] + 1, tables[0].index);
+
+            titles.Add(new TestSpecificationTitle(
+                titleName,
+                heading.Line + 1,
+                overviewMarkdown,
+                preconditionsMarkdown,
+                commonStepsMarkdown,
+                testCases));
         }
 
         DisableDuplicateIds(titles, diagnostics, sourcePath);
@@ -200,6 +210,13 @@ public static class TestSpecificationParser
         }
 
         return source.AsSpan(cell.Span.Start, cell.Span.End - cell.Span.Start + 1).Trim().ToString();
+    }
+
+    private static string ReadBlockSource(string source, List<Block> blocks, int start, int end)
+    {
+        var first = blocks[start];
+        var last = blocks[end - 1];
+        return source.AsSpan(first.Span.Start, last.Span.End - first.Span.Start + 1).Trim().ToString();
     }
 
     private static void DisableDuplicateIds(
@@ -281,6 +298,9 @@ public static class TestSpecificationParser
 public sealed record TestSpecificationTitle(
     string Name,
     int LineNumber,
+    string OverviewMarkdown,
+    string PreconditionsMarkdown,
+    string CommonStepsMarkdown,
     IReadOnlyList<TestSpecificationCase> TestCases);
 
 public sealed record TestSpecificationCase(

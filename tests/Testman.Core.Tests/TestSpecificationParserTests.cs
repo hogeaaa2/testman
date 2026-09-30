@@ -24,6 +24,41 @@ public sealed class TestSpecificationParserTests
     }
 
     [Fact]
+    public void Parse_preserves_required_section_markdown()
+    {
+        const string source = """
+            Testman-Format-Version: 1
+
+            # Login tests
+
+            ## Overview
+
+            Verify **login** behavior.
+
+            ## Preconditions
+
+            - User exists.
+            - User is active.
+
+            ## Common steps
+
+            1. Open the page.
+            2. Submit the form.
+
+            | ID | Major item | Middle item | Minor item | Steps | Expected result |
+            |---|---|---|---|---|---|
+            | TC-1 | - | - | Login | - | Dashboard is displayed. |
+            """;
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        var title = Assert.Single(result.Titles);
+        Assert.Equal("Verify **login** behavior.", title.OverviewMarkdown);
+        Assert.Equal("- User exists.\n- User is active.", title.PreconditionsMarkdown);
+        Assert.Equal("1. Open the page.\n2. Submit the form.", title.CommonStepsMarkdown);
+    }
+
+    [Fact]
     public void Parse_displays_titles_but_disables_registration_when_version_is_missing()
     {
         var source = ValidSpecification("Login tests", "TC-1")
