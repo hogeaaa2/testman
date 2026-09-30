@@ -1,10 +1,34 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Specifications";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<header class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between mb-4">
+    <div>
+        <p class="text-uppercase text-primary fw-semibold small mb-1">Test specifications</p>
+        <h1 class="h2 mb-1">Specification workspace</h1>
+        <p class="text-body-secondary mb-0">Review test coverage, then switch to verification when you are ready to execute.</p>
+    </div>
+    <div class="btn-group" role="group" aria-label="Specification view mode">
+        <button class="btn btn-primary" type="button" aria-pressed="true">Test patterns</button>
+        <button class="btn btn-outline-primary" type="button" aria-pressed="false">Verification</button>
+    </div>
+</header>
+
+<section class="alert alert-light border shadow-sm" aria-labelledby="diagnostics-heading">
+    <div class="d-flex align-items-center justify-content-between gap-3">
+        <div>
+            <h2 class="h6 mb-1" id="diagnostics-heading">Specification diagnostics</h2>
+            <p class="text-body-secondary small mb-0">Parsing messages will appear here.</p>
+        </div>
+        <span class="badge text-bg-success">Ready</span>
+    </div>
+</section>
+
+<section class="card border-0 shadow-sm mt-4">
+    <div class="card-body p-4 p-lg-5 text-center">
+        <h2 class="h5">No specification loaded</h2>
+        <p class="text-body-secondary mb-0">Start testman with an explicit specifications directory to display test cases.</p>
+    </div>
+</section>
