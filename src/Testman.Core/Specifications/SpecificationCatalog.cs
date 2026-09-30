@@ -18,4 +18,7 @@ public static class SpecificationCatalog
 
 public sealed record SpecificationCatalogResult(
     IReadOnlyList<SpecificationFileLoadResult> Files,
-    IReadOnlyList<SpecificationDiagnostic> Diagnostics);
+    IReadOnlyList<SpecificationDiagnostic> Diagnostics)
+{
+    public bool CanStart => Files.Count > 0;
+}

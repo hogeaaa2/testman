@@ -55,6 +55,28 @@ public sealed class SpecificationPathResolverTests : IDisposable
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("not found", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void Resolve_reports_a_directory_without_markdown_files()
+    {
+        WriteFile("notes.txt");
+
+        var result = SpecificationPathResolver.Resolve(directory, Path.GetTempPath());
+
+        Assert.Empty(result.Paths);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("no Markdown", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Resolve_reports_an_explicit_non_markdown_file()
+    {
+        var path = WriteFile("notes.txt");
+
+        var result = SpecificationPathResolver.Resolve(path, directory);
+
+        Assert.Empty(result.Paths);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("Markdown", StringComparison.OrdinalIgnoreCase));
+    }
+
     public void Dispose() => Directory.Delete(directory, recursive: true);
 
     private string WriteFile(string relativePath)

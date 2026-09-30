@@ -18,6 +18,7 @@ public sealed class SpecificationCatalogTests : IDisposable
         var catalog = SpecificationCatalog.Load(directory, Path.GetTempPath());
 
         Assert.Equal(2, catalog.Files.Count);
+        Assert.True(catalog.CanStart);
         Assert.Equal(["Login", "Profile"], catalog.Files.SelectMany(file => file.Specification.Titles).Select(title => title.Name).Order());
         Assert.Empty(catalog.Diagnostics);
     }
@@ -31,6 +32,7 @@ public sealed class SpecificationCatalogTests : IDisposable
         var catalog = SpecificationCatalog.Load(directory, Path.GetTempPath());
 
         Assert.Equal(2, catalog.Files.Count);
+        Assert.True(catalog.CanStart);
         Assert.Contains(catalog.Files, file => file.Specification.Titles.Any(title => title.Name == "Valid"));
         Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.SourcePath.EndsWith("invalid.md", StringComparison.Ordinal));
     }
@@ -41,7 +43,20 @@ public sealed class SpecificationCatalogTests : IDisposable
         var catalog = SpecificationCatalog.Load("missing", directory);
 
         Assert.Empty(catalog.Files);
+        Assert.False(catalog.CanStart);
         Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.Reason.Contains("not found", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Load_cannot_start_when_the_directory_contains_no_markdown_files()
+    {
+        File.WriteAllText(Path.Combine(directory, "notes.txt"), "not a specification");
+
+        var catalog = SpecificationCatalog.Load(directory, Path.GetTempPath());
+
+        Assert.False(catalog.CanStart);
+        Assert.Empty(catalog.Files);
+        Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.Reason.Contains("no Markdown", StringComparison.OrdinalIgnoreCase));
     }
 
     public void Dispose() => Directory.Delete(directory, recursive: true);

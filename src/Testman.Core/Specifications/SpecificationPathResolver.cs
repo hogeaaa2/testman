@@ -12,8 +12,15 @@ public static class SpecificationPathResolver
 
         if (File.Exists(resolvedPath))
         {
-            if (IsReparsePoint(resolvedPath) || !HasMarkdownExtension(resolvedPath))
+            if (IsReparsePoint(resolvedPath))
             {
+                diagnostics.Add(NoMarkdownDiagnostic(inputPath));
+                return new SpecificationPathResolution([], diagnostics);
+            }
+
+            if (!HasMarkdownExtension(resolvedPath))
+            {
+                diagnostics.Add(new SpecificationDiagnostic(inputPath, null, "Specified file is not a Markdown specification."));
                 return new SpecificationPathResolution([], diagnostics);
             }
 
@@ -28,6 +35,7 @@ public static class SpecificationPathResolver
 
         if (IsReparsePoint(resolvedPath))
         {
+            diagnostics.Add(NoMarkdownDiagnostic(inputPath));
             return new SpecificationPathResolution([], diagnostics);
         }
 
@@ -66,6 +74,11 @@ public static class SpecificationPathResolver
             }
         }
 
+        if (paths.Count == 0)
+        {
+            diagnostics.Add(NoMarkdownDiagnostic(inputPath));
+        }
+
         return new SpecificationPathResolution(paths, diagnostics);
     }
 
@@ -74,6 +87,9 @@ public static class SpecificationPathResolver
 
     private static bool IsReparsePoint(string path) =>
         (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0;
+
+    private static SpecificationDiagnostic NoMarkdownDiagnostic(string inputPath) =>
+        new(inputPath, null, "Specification path contains no Markdown specification files.");
 }
 
 public sealed record SpecificationPathResolution(
