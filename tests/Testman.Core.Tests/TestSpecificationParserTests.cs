@@ -10,6 +10,7 @@ public sealed class TestSpecificationParserTests
         var result = TestSpecificationParser.Parse(ValidSpecification("Login tests", "TC-1"), "login.md");
 
         var title = Assert.Single(result.Titles);
+        Assert.Equal(1, result.FormatVersion);
         Assert.Equal("Login tests", title.Name);
         var testCase = Assert.Single(title.TestCases);
         Assert.Equal("TC-1", testCase.Id);
@@ -19,6 +20,47 @@ public sealed class TestSpecificationParserTests
         Assert.Equal("-", testCase.Steps);
         Assert.Equal("Dashboard is displayed.", testCase.ExpectedResult);
         Assert.True(testCase.CanRegisterResult);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public void Parse_displays_titles_but_disables_registration_when_version_is_missing()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("Testman-Format-Version: 1\n\n", string.Empty);
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        Assert.Null(result.FormatVersion);
+        Assert.Single(result.Titles);
+        Assert.All(result.Titles.SelectMany(title => title.TestCases), testCase => Assert.False(testCase.CanRegisterResult));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("missing", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Parse_displays_titles_but_disables_registration_when_version_is_not_numeric()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("Testman-Format-Version: 1", "Testman-Format-Version: current");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        Assert.Null(result.FormatVersion);
+        Assert.Single(result.Titles);
+        Assert.All(result.Titles.SelectMany(title => title.TestCases), testCase => Assert.False(testCase.CanRegisterResult));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("positive integer", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Parse_applies_current_rules_to_an_unknown_positive_version()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("Testman-Format-Version: 1", "Testman-Format-Version: 42");
+
+        var result = TestSpecificationParser.Parse(source, "login.md");
+
+        Assert.Equal(42, result.FormatVersion);
+        Assert.True(Assert.Single(Assert.Single(result.Titles).TestCases).CanRegisterResult);
         Assert.Empty(result.Diagnostics);
     }
 

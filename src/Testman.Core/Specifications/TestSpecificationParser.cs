@@ -22,6 +22,7 @@ public static class TestSpecificationParser
         ArgumentNullException.ThrowIfNull(source);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
 
+        var headerResult = TestSpecificationHeaderParser.Parse(source);
         var document = Markdown.Parse(source, Pipeline);
         var blocks = document.ToList();
         var titles = new List<TestSpecificationTitle>();
@@ -162,7 +163,13 @@ public static class TestSpecificationParser
 
         DisableDuplicateIds(titles, diagnostics, sourcePath);
 
-        return new TestSpecificationParseResult(titles, diagnostics);
+        if (!headerResult.IsValid)
+        {
+            DisableAllResults(titles);
+            diagnostics.Insert(0, new SpecificationDiagnostic(sourcePath, 1, headerResult.Diagnostic!));
+        }
+
+        return new TestSpecificationParseResult(headerResult.FormatVersion, titles, diagnostics);
     }
 
     private static string ReadHeadingText(string source, HeadingBlock heading)
@@ -232,6 +239,20 @@ public static class TestSpecificationParser
             $"Duplicated ID detected: {string.Join(", ", duplicateIds.Order(StringComparer.Ordinal))}"));
     }
 
+    private static void DisableAllResults(List<TestSpecificationTitle> titles)
+    {
+        for (var titleIndex = 0; titleIndex < titles.Count; titleIndex++)
+        {
+            var title = titles[titleIndex];
+            titles[titleIndex] = title with
+            {
+                TestCases = title.TestCases
+                    .Select(testCase => testCase with { CanRegisterResult = false })
+                    .ToList(),
+            };
+        }
+    }
+
     private static void AppendInlineText(ContainerInline? container, StringBuilder builder)
     {
         if (container is null)
@@ -275,5 +296,6 @@ public sealed record TestSpecificationCase(
 public sealed record SpecificationDiagnostic(string SourcePath, int? LineNumber, string Reason);
 
 public sealed record TestSpecificationParseResult(
+    int? FormatVersion,
     IReadOnlyList<TestSpecificationTitle> Titles,
     IReadOnlyList<SpecificationDiagnostic> Diagnostics);
