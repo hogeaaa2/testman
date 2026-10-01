@@ -61,4 +61,28 @@ public sealed class SafeMarkdownRendererTests
         Assert.DoesNotContain("mailto:", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("alt=\"unsafe source\"", html, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData("<p title=\"not allowed\">text</p>", "title=")]
+    [InlineData("<a src=\"https://example.com/image.png\">link</a>", "src=")]
+    [InlineData("<img src=\"image.png\" colspan=\"2\">", "colspan=")]
+    [InlineData("<td href=\"https://example.com\">cell</td>", "href=")]
+    public void Render_removes_attributes_from_unapproved_elements(string markdown, string forbiddenAttribute)
+    {
+        var html = SafeMarkdownRenderer.Render(markdown);
+
+        Assert.DoesNotContain(forbiddenAttribute, html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("<a href=\"https://example.com\" title=\"Example\">link</a>", "href=", "title=")]
+    [InlineData("<img src=\"image.png\" alt=\"Image\" width=\"10\" height=\"20\">", "src=", "alt=")]
+    [InlineData("<table><tbody><tr><td colspan=\"2\" rowspan=\"3\">cell</td></tr></tbody></table>", "colspan=", "rowspan=")]
+    public void Render_preserves_attributes_on_approved_elements(string markdown, string firstAttribute, string secondAttribute)
+    {
+        var html = SafeMarkdownRenderer.Render(markdown);
+
+        Assert.Contains(firstAttribute, html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(secondAttribute, html, StringComparison.OrdinalIgnoreCase);
+    }
 }

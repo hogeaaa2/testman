@@ -1,3 +1,4 @@
+using AngleSharp.Html.Parser;
 using Ganss.Xss;
 using Markdig;
 
@@ -19,13 +20,26 @@ public static class SafeMarkdownRenderer
     private static readonly string[] AllowedAttributes =
         ["href", "title", "src", "alt", "width", "height", "colspan", "rowspan"];
 
+    private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> AllowedAttributesByTag =
+        new Dictionary<string, IReadOnlySet<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["a"] = new HashSet<string>(["href", "title"], StringComparer.OrdinalIgnoreCase),
+            ["img"] = new HashSet<string>(["src", "alt", "title", "width", "height"], StringComparer.OrdinalIgnoreCase),
+            ["table"] = TableAttributes(),
+            ["thead"] = TableAttributes(),
+            ["tbody"] = TableAttributes(),
+            ["tr"] = TableAttributes(),
+            ["th"] = TableAttributes(),
+            ["td"] = TableAttributes(),
+        };
+
     public static string Render(string markdown)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
         var sanitizer = CreateSanitizer();
         var generatedHtml = Markdown.ToHtml(markdown, Pipeline);
-        return sanitizer.Sanitize(generatedHtml);
+        return FilterAttributesByTag(sanitizer.Sanitize(generatedHtml));
     }
 
     private static HtmlSanitizer CreateSanitizer()
@@ -55,4 +69,26 @@ public static class SafeMarkdownRenderer
 
         return sanitizer;
     }
+
+    private static string FilterAttributesByTag(string html)
+    {
+        var document = new HtmlParser().ParseDocument($"<body>{html}</body>");
+
+        foreach (var element in document.Body!.QuerySelectorAll("*"))
+        {
+            AllowedAttributesByTag.TryGetValue(element.LocalName, out var allowedAttributes);
+            foreach (var attribute in element.Attributes.ToArray())
+            {
+                if (allowedAttributes is null || !allowedAttributes.Contains(attribute.LocalName))
+                {
+                    element.RemoveAttribute(attribute.LocalName);
+                }
+            }
+        }
+
+        return document.Body.InnerHtml;
+    }
+
+    private static IReadOnlySet<string> TableAttributes() =>
+        new HashSet<string>(["colspan", "rowspan"], StringComparer.OrdinalIgnoreCase);
 }
