@@ -31,6 +31,16 @@ Accepted仕様とADRに従い、Webアプリケーション、解析処理、SQL
 
 Web機能またはCLIコマンドを追加するときは `.agents/skills/add-feature/SKILL.md` を使用する。
 
+## Commit and Review Cycle
+
+- 1コミットで扱う変更を、レビュー目的が一文で説明できる範囲に保つ。
+- 実装コミット前にbuildとtestsを実行する。
+- 実装コミット後はpushせず、Reviewerの結果を待つ。
+- CriticalまたはMajorの指摘がある間は次の機能実装へ進まない。
+- Minorの指摘は修正するか、ユーザーの明示的な受け入れを得る。
+- 指摘対応後は再レビューを依頼する。
+- レビュー完了後、ユーザーからpushが許可されている場合のみ、実装、修正、レビュー報告のコミットをpushする。
+
 ## When Specification Is Insufficient
 
 コードで補完せず、次の形式で停止理由を報告する。
