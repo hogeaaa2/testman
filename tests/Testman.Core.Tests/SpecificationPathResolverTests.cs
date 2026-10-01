@@ -1,4 +1,5 @@
 using Testman.Core.Specifications;
+using System.Diagnostics;
 
 namespace Testman.Core.Tests;
 
@@ -117,6 +118,65 @@ public sealed class SpecificationPathResolverTests : IDisposable
         }
     }
 
+    [Fact]
+    public void Resolve_ignores_an_explicit_symbolic_link_file()
+    {
+        var targetFile = WriteFile(Path.Combine("targets", "target.md"));
+        var linkPath = Path.Combine(directory, "linked.md");
+        File.CreateSymbolicLink(linkPath, targetFile);
+        symbolicLinks.Add(linkPath);
+
+        var result = SpecificationPathResolver.Resolve(linkPath, Path.GetTempPath());
+
+        Assert.Empty(result.Paths);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("no Markdown", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Resolve_ignores_an_explicit_symbolic_link_directory()
+    {
+        var targetDirectory = Path.Combine(directory, "target-directory");
+        Directory.CreateDirectory(targetDirectory);
+        File.WriteAllText(Path.Combine(targetDirectory, "target.md"), string.Empty);
+        var linkPath = Path.Combine(directory, "linked-directory");
+        Directory.CreateSymbolicLink(linkPath, targetDirectory);
+        symbolicLinks.Add(linkPath);
+
+        var result = SpecificationPathResolver.Resolve(linkPath, Path.GetTempPath());
+
+        Assert.Empty(result.Paths);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Reason.Contains("no Markdown", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Resolve_does_not_recurse_into_windows_junctions()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var regularFile = WriteFile("regular.md");
+        var targetDirectory = Path.Combine(Path.GetTempPath(), $"testman-junction-target-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(targetDirectory);
+        File.WriteAllText(Path.Combine(targetDirectory, "external.md"), string.Empty);
+        var junctionPath = Path.Combine(directory, "junction");
+
+        try
+        {
+            CreateJunction(junctionPath, targetDirectory);
+            symbolicLinks.Add(junctionPath);
+
+            var result = SpecificationPathResolver.Resolve(directory, Path.GetTempPath());
+
+            Assert.Equal([regularFile], result.Paths);
+        }
+        finally
+        {
+            Directory.Delete(targetDirectory, recursive: true);
+        }
+    }
+
     public void Dispose()
     {
         foreach (var symbolicLink in symbolicLinks)
@@ -140,5 +200,23 @@ public sealed class SpecificationPathResolverTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, string.Empty);
         return Path.GetFullPath(path);
+    }
+
+    private static void CreateJunction(string junctionPath, string targetPath)
+    {
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            ArgumentList = { "/d", "/c", "mklink", "/J", junctionPath, targetPath },
+        }) ?? throw new InvalidOperationException("Could not start cmd.exe to create a test junction.");
+
+        process.WaitForExit();
+        Assert.True(
+            process.ExitCode == 0,
+            $"Could not create test junction. {process.StandardOutput.ReadToEnd()} {process.StandardError.ReadToEnd()}");
     }
 }
