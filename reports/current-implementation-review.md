@@ -5,12 +5,25 @@
 - Review date: 2026-10-01
 - Reviewed branch: `main` (`origin/main` と同期した状態)
 - Source of Truth: `docs/requirements.md`、関連する `docs/*.md`、Accepted ADR-001〜003
+- Re-reviewed fixes: `2397d52`、`3b96265`、`4ba1701`、`2f6d360`、`84f5914`
 - Reviewed implementation: テスト仕様解析、診断と部分成功、Markdown/HTMLサニタイズ、仕様パス解決、ファイル/カタログ読込、CLI引数解析、Razor PagesホストとWebシェル
 - 将来スコープであるWebへのカタログ接続、結果入力、SQLite永続化、履歴表示は今回の欠陥判定対象外とした。
 
-## Findings
+## Re-review summary (commits `2397d52`, `3b96265`, `4ba1701`, `2f6d360`, `84f5914`)
 
-### Major: localhost限定がWebホストで強制されていない
+- localhost限定、タグ別HTML属性制限、UTF-8 BOM対応の3件のMajorは解消を確認した。
+- シンボリックリンク／ジャンクション除外のMinorも、配下と指定ルートのリンク、Windowsジャンクションのテスト追加により解消を確認した。
+- 全体ビルドは警告0・エラー0で成功し、`Testman.Core.Tests` 82件、`Testman.Web.Tests` 13件がすべて成功した。
+
+## Current findings
+
+- なし。
+
+## Resolved findings
+
+### Resolved: localhost限定がWebホストで強制されていない
+
+- Resolution: `2f6d360`で`urls`、`Kestrel:Endpoints:*:Url`を検査し、loopback以外を起動前に拒否する。全インターフェース待受となる`http_ports`と`https_ports`も拒否する。localhost、IPv4/IPv6 loopbackの許可と代表的な外部待受設定の拒否を自動テストで確認した。
 
 - Affected location: `src/Testman.Web/Program.cs:1`
 - Violated requirement:
@@ -27,7 +40,9 @@
   - 利用者設定や追加引数にかかわらずV0.1はloopbackだけで待ち受けるか、loopback以外の指定を明示的に拒否して終了する。
   - 実行時設定で外部バインドできないことを自動テストで確認する。
 
-### Major: HTML属性の許可リストが要素ごとに制限されていない
+### Resolved: HTML属性の許可リストが要素ごとに制限されていない
+
+- Resolution: `3b96265`でサニタイズ済みHTMLをタグ別の属性許可リストでも検査するようになった。許可属性の保持と、仕様外のタグ・属性の組み合わせの除去を自動テストで確認した。
 
 - Affected location: `src/Testman.Core/Rendering/SafeMarkdownRenderer.cs:19`, `src/Testman.Core/Rendering/SafeMarkdownRenderer.cs:40-41`
 - Violated requirement:
@@ -43,7 +58,9 @@
   - 許可属性をタグとの組み合わせで検査し、仕様にない組み合わせは除去する。
   - 各タグの許可・不許可属性を自動テストで固定する。
 
-### Major: UTF-8 BOM付きMarkdownを有効なUTF-8仕様として扱えない
+### Resolved: UTF-8 BOM付きMarkdownを有効なUTF-8仕様として扱えない
+
+- Resolution: `2397d52`でstrict UTF-8読込後の先頭U+FEFFを除去するようになった。BOM付きの有効な仕様から形式バージョンとtitleを解析し、診断が空になることを自動テストで確認した。
 
 - Affected location: `src/Testman.Core/Specifications/SpecificationFileLoader.cs:17-22`
 - Violated requirement:
@@ -58,7 +75,9 @@
 - Expected state:
   - UTF-8 BOMあり・なしをともに受理するか、BOM禁止を製品仕様として明記する。現在の「UTF-8」という仕様に従うなら、BOMを検出・除去して先頭行を解析する。
 
-### Minor: シンボリックリンク／ジャンクション無視の自動テストがない
+### Resolved: シンボリックリンク／ジャンクション無視の自動テストがない
+
+- Resolution: `4ba1701`で配下のファイルリンクとディレクトリリンク、`84f5914`で指定ルート自体のファイル／ディレクトリリンクとWindowsジャンクションのテストが追加された。対象のパス解決テスト11件がWindows上ですべて成功した。
 
 - Affected location: `tests/Testman.Core.Tests/SpecificationPathResolverTests.cs`
 - Requirement at risk:
@@ -74,8 +93,8 @@
 
 - `dotnet build Testman.sln --no-restore`: 成功、警告0、エラー0
 - `dotnet test Testman.sln --no-build --no-restore`: 成功
-  - `Testman.Core.Tests`: 69 passed
-  - `Testman.Web.Tests`: 2 passed
+  - `Testman.Core.Tests`: 82 passed
+  - `Testman.Web.Tests`: 13 passed
 - Git管理状態:
   - レビュー開始時点で`main`は`origin/main`と同期
   - 追跡対象に`bin/`、`obj/`、テスト結果、coverage、SQLite実DBは見つからなかった
@@ -92,6 +111,7 @@
 
 ## Residual risks
 
+- localhost制約は構成値の検証単位でテストされている。実プロセスを外部待受設定で起動し、サーバーが開始前に終了するところまでのプロセス統合テストはない。
 - Webシェルはまだ仕様カタログやCLI起動処理へ接続されていないため、診断表示・正常title表示・CLI終了コードはエンドツーエンドでは未検証である。これは現時点の後続実装範囲として扱い、欠陥には数えていない。
 - 結果登録、CSRF、SQLite追記、DB障害、Git SHA、履歴保持は未実装のため今回評価できない。
 - Markdownサニタイズは代表例のテストに留まる。URLの難読化、プロトコル相対URL、壊れたHTML、属性の大文字小文字などの境界ケースは、Web出力へ接続する前に追加の安全性テストが望ましい。
