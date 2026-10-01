@@ -36,7 +36,7 @@ public sealed class CliWebHostTests : IDisposable
     [Fact]
     public async Task Home_page_displays_valid_titles_and_diagnostics_from_the_selected_path()
     {
-        WriteFile("valid.md", ValidSpecification());
+        WriteFile("valid.md", ValidSpecification("Valid title"));
         WriteFile("invalid.md", "Testman-Format-Version: 1\n\n# Invalid title");
         var port = FindAvailablePort();
         using var process = StartProcess(
@@ -65,6 +65,12 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Verification", html, StringComparison.Ordinal);
             Assert.Contains("/lib/bootstrap/dist/css/bootstrap.min.", html, StringComparison.Ordinal);
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
+
+            WriteFile("valid.md", ValidSpecification("Updated title"));
+            var updatedHtml = await client.GetStringAsync("/");
+
+            Assert.Contains("Updated title", updatedHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Valid title", updatedHtml, StringComparison.Ordinal);
         }
         finally
         {
@@ -143,10 +149,10 @@ public sealed class CliWebHostTests : IDisposable
     private void WriteFile(string relativePath, string content) =>
         File.WriteAllText(Path.Combine(directory, relativePath), content, new UTF8Encoding(false));
 
-    private static string ValidSpecification() => """
+    private static string ValidSpecification(string title) => $$"""
         Testman-Format-Version: 1
 
-        # Valid title
+        # {{title}}
 
         ## Overview
 

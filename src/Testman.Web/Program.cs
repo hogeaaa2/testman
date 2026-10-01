@@ -13,7 +13,9 @@ Testman.Web.LocalhostBindingGuard.Validate(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton(SpecificationPageContent.Create(startup.Catalog!));
+builder.Services.AddSingleton(new SpecificationPageContentSource(
+    startup.Command!.SpecificationPath,
+    Environment.CurrentDirectory));
 
 var app = builder.Build();
 

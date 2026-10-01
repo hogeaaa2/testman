@@ -3,9 +3,9 @@ using Testman.Web.Presentation;
 
 namespace Testman.Web.Pages;
 
-public sealed class IndexModel(SpecificationPageContent content) : PageModel
+public sealed class IndexModel(SpecificationPageContentSource contentSource) : PageModel
 {
-    public SpecificationPageContent PageContent { get; } = content;
+    public SpecificationPageContent PageContent { get; private set; } = null!;
 
-    public void OnGet() { }
+    public void OnGet() => PageContent = contentSource.Load();
 }
