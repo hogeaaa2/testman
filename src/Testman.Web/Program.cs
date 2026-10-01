@@ -1,4 +1,5 @@
 var builder = WebApplication.CreateBuilder(args);
+Testman.Web.LocalhostBindingGuard.Validate(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
