@@ -71,6 +71,15 @@ public sealed class CliWebHostTests : IDisposable
 
             Assert.Contains("Updated title", updatedHtml, StringComparison.Ordinal);
             Assert.DoesNotContain("Valid title", updatedHtml, StringComparison.Ordinal);
+
+            var verificationHtml = await client.GetStringAsync("/?mode=verification");
+
+            Assert.Contains("TC-1", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Verification precondition", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Shared step", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Case step", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Safe overview", verificationHtml, StringComparison.Ordinal);
         }
         finally
         {
@@ -160,14 +169,14 @@ public sealed class CliWebHostTests : IDisposable
 
         ## Preconditions
 
-        None
+        Verification precondition
 
         ## Common steps
 
-        None
+        Shared step
 
         | ID | Major item | Middle item | Minor item | Steps | Expected result |
         |---|---|---|---|---|---|
-        | TC-1 | Major | Middle | Minor | - | Success |
+        | TC-1 | Major | Middle | Minor | Case step | Expected success |
         """;
 }

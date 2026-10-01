@@ -46,6 +46,29 @@ public sealed class SpecificationPageContentTests
         Assert.DoesNotContain("TC-1", title.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Create_prepares_sanitized_verification_details()
+    {
+        var source = ValidSpecification("Verification", "Overview")
+            .Replace("None\n\n## Common steps", "Precondition <script>unsafe()</script>\n\n## Common steps", StringComparison.Ordinal)
+            .Replace("None\n\n| ID", "Common **step**\n\n| ID", StringComparison.Ordinal)
+            .Replace("| TC-1 | Major | Middle | Minor | - | Success |", "| TC-1 | Major | Middle | Minor | Click **save** | Shows <em>success</em> |", StringComparison.Ordinal);
+        var file = Parse("verification.md", source);
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], file.Specification.Diagnostics));
+
+        var title = Assert.Single(Assert.Single(content.Files).Titles);
+        Assert.Contains("Precondition", title.PreconditionsHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("script", title.PreconditionsHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<strong>step</strong>", title.CommonStepsHtml, StringComparison.Ordinal);
+        var testCase = Assert.Single(title.VerificationCases);
+        Assert.Equal("TC-1", testCase.Id);
+        Assert.Contains("<strong>save</strong>", testCase.StepsHtml, StringComparison.Ordinal);
+        Assert.Contains("<em>success</em>", testCase.ExpectedResultHtml, StringComparison.Ordinal);
+        Assert.True(testCase.CanRegisterResult);
+    }
+
     private static SpecificationFileLoadResult Parse(string path, string source) =>
         new(path, TestSpecificationParser.Parse(source, path));
 

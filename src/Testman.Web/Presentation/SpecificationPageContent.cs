@@ -33,10 +33,17 @@ public sealed record SpecificationPageContent(
         new(
             title.Name,
             SafeMarkdownRenderer.Render(title.OverviewMarkdown),
+            SafeMarkdownRenderer.Render(title.PreconditionsMarkdown),
+            SafeMarkdownRenderer.Render(title.CommonStepsMarkdown),
             title.TestCases.Select(testCase => new SpecificationPatternContent(
                 testCase.MajorItem,
                 testCase.MiddleItem,
-                testCase.MinorItem)).ToList());
+                testCase.MinorItem)).ToList(),
+            title.TestCases.Select(testCase => new SpecificationVerificationCaseContent(
+                testCase.Id,
+                SafeMarkdownRenderer.Render(testCase.Steps),
+                SafeMarkdownRenderer.Render(testCase.ExpectedResult),
+                testCase.CanRegisterResult)).ToList());
 }
 
 public sealed record SpecificationDiagnosticContent(
@@ -52,9 +59,18 @@ public sealed record SpecificationFileContent(
 public sealed record SpecificationTitleContent(
     string Name,
     string OverviewHtml,
-    IReadOnlyList<SpecificationPatternContent> Patterns);
+    string PreconditionsHtml,
+    string CommonStepsHtml,
+    IReadOnlyList<SpecificationPatternContent> Patterns,
+    IReadOnlyList<SpecificationVerificationCaseContent> VerificationCases);
 
 public sealed record SpecificationPatternContent(
     string MajorItem,
     string MiddleItem,
     string MinorItem);
+
+public sealed record SpecificationVerificationCaseContent(
+    string Id,
+    string StepsHtml,
+    string ExpectedResultHtml,
+    bool CanRegisterResult);

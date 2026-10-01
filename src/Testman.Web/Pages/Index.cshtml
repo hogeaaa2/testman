@@ -11,8 +11,8 @@
         <p class="text-body-secondary mb-0">Review test coverage, then switch to verification when you are ready to execute.</p>
     </div>
     <div class="btn-group" role="group" aria-label="Specification view mode">
-        <button class="btn btn-primary" type="button" aria-pressed="true">Test patterns</button>
-        <button class="btn btn-outline-primary" type="button" aria-pressed="false">Verification</button>
+        <a class="btn @(Model.IsVerificationMode ? "btn-outline-primary" : "btn-primary")" href="/" aria-pressed="@(!Model.IsVerificationMode)">Test patterns</a>
+        <a class="btn @(Model.IsVerificationMode ? "btn-primary" : "btn-outline-primary")" href="/?mode=verification" aria-pressed="@Model.IsVerificationMode">Verification</a>
     </div>
 </header>
 
@@ -55,28 +55,63 @@
             {
                 <article class="mb-5">
                     <h2 class="h4">@title.Name</h2>
-                    <div class="mb-3">@Html.Raw(title.OverviewHtml)</div>
-                    <div class="table-responsive">
-                        <table class="table table-striped align-middle">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Major item</th>
-                                    <th scope="col">Middle item</th>
-                                    <th scope="col">Minor item</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var pattern in title.Patterns)
-                                {
+                    @if (Model.IsVerificationMode)
+                    {
+                        <section class="mb-3">
+                            <h3 class="h6">Preconditions</h3>
+                            <div>@Html.Raw(title.PreconditionsHtml)</div>
+                        </section>
+                        <section class="mb-3">
+                            <h3 class="h6">Common steps</h3>
+                            <div>@Html.Raw(title.CommonStepsHtml)</div>
+                        </section>
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead>
                                     <tr>
-                                        <td>@pattern.MajorItem</td>
-                                        <td>@pattern.MiddleItem</td>
-                                        <td>@pattern.MinorItem</td>
+                                        <th scope="col">Test ID</th>
+                                        <th scope="col">Steps</th>
+                                        <th scope="col">Expected result</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    @foreach (var testCase in title.VerificationCases)
+                                    {
+                                        <tr>
+                                            <th scope="row">@testCase.Id</th>
+                                            <td>@Html.Raw(testCase.StepsHtml)</td>
+                                            <td>@Html.Raw(testCase.ExpectedResultHtml)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">@Html.Raw(title.OverviewHtml)</div>
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Major item</th>
+                                        <th scope="col">Middle item</th>
+                                        <th scope="col">Minor item</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var pattern in title.Patterns)
+                                    {
+                                        <tr>
+                                            <td>@pattern.MajorItem</td>
+                                            <td>@pattern.MiddleItem</td>
+                                            <td>@pattern.MinorItem</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </article>
             }
         </div>
