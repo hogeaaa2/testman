@@ -16,19 +16,69 @@
     </div>
 </header>
 
-<section class="alert alert-light border shadow-sm" aria-labelledby="diagnostics-heading">
+<section class="alert @(Model.PageContent.Diagnostics.Count > 0 ? "alert-warning" : "alert-light") border shadow-sm" aria-labelledby="diagnostics-heading">
     <div class="d-flex align-items-center justify-content-between gap-3">
         <div>
             <h2 class="h6 mb-1" id="diagnostics-heading">Specification diagnostics</h2>
-            <p class="text-body-secondary small mb-0">Parsing messages will appear here.</p>
+            @if (Model.PageContent.Diagnostics.Count == 0)
+            {
+                <p class="text-body-secondary small mb-0">No parsing diagnostics.</p>
+            }
+            else
+            {
+                <ul class="mb-0 mt-2">
+                    @foreach (var diagnostic in Model.PageContent.Diagnostics)
+                    {
+                        <li>
+                            <strong>@diagnostic.SourcePath@if (diagnostic.LineNumber is int lineNumber){<text>:@lineNumber</text>}</strong>
+                            <span> — @diagnostic.Reason</span>
+                        </li>
+                    }
+                </ul>
+            }
         </div>
-        <span class="badge text-bg-success">Ready</span>
+        <span class="badge @(Model.PageContent.Diagnostics.Count > 0 ? "text-bg-warning" : "text-bg-success")">
+            @(Model.PageContent.Diagnostics.Count > 0 ? "Needs attention" : "Ready")
+        </span>
     </div>
 </section>
 
-<section class="card border-0 shadow-sm mt-4">
-    <div class="card-body p-4 p-lg-5 text-center">
-        <h2 class="h5">No specification loaded</h2>
-        <p class="text-body-secondary mb-0">Start testman with an explicit specifications directory to display test cases.</p>
-    </div>
-</section>
+@foreach (var file in Model.PageContent.Files)
+{
+    <section class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2">
+            <span>@file.SourcePath</span>
+            <span class="badge text-bg-secondary">Format version @file.FormatVersion</span>
+        </div>
+        <div class="card-body p-4">
+            @foreach (var title in file.Titles)
+            {
+                <article class="mb-5">
+                    <h2 class="h4">@title.Name</h2>
+                    <div class="mb-3">@Html.Raw(title.OverviewHtml)</div>
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Major item</th>
+                                    <th scope="col">Middle item</th>
+                                    <th scope="col">Minor item</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var pattern in title.Patterns)
+                                {
+                                    <tr>
+                                        <td>@pattern.MajorItem</td>
+                                        <td>@pattern.MiddleItem</td>
+                                        <td>@pattern.MinorItem</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+}

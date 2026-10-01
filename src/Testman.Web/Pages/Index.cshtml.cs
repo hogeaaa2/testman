@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Testman.Web.Presentation;
 
 namespace Testman.Web.Pages;
 
-public class IndexModel : PageModel
+public sealed class IndexModel(SpecificationPageContent content) : PageModel
 {
-    public void OnGet()
-    {
+    public SpecificationPageContent PageContent { get; } = content;
 
-    }
+    public void OnGet() { }
 }

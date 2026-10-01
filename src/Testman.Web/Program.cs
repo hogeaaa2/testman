@@ -1,8 +1,19 @@
-var builder = WebApplication.CreateBuilder(args);
+using Testman.Core.Commands;
+using Testman.Web.Presentation;
+
+var startup = ServeStartup.Prepare(args, Environment.CurrentDirectory);
+if (!startup.CanStart)
+{
+    Console.Error.WriteLine(startup.Error);
+    return 1;
+}
+
+var builder = WebApplication.CreateBuilder([]);
 Testman.Web.LocalhostBindingGuard.Validate(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddSingleton(SpecificationPageContent.Create(startup.Catalog!));
 
 var app = builder.Build();
 
@@ -24,4 +35,7 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 
-app.Run();
+await app.RunAsync();
+return 0;
+
+public partial class Program;
