@@ -27,6 +27,19 @@ public sealed class SpecificationFileLoaderTests : IDisposable
     }
 
     [Fact]
+    public void Load_accepts_an_utf8_bom()
+    {
+        var path = Path.Combine(directory, "login-with-bom.md");
+        File.WriteAllText(path, ValidSpecification, new UTF8Encoding(true));
+
+        var result = SpecificationFileLoader.Load(path);
+
+        Assert.Equal(1, result.Specification.FormatVersion);
+        Assert.Equal("ログイン", Assert.Single(result.Specification.Titles).Name);
+        Assert.Empty(result.Specification.Diagnostics);
+    }
+
+    [Fact]
     public void Load_reports_invalid_utf8_without_parsing_content()
     {
         var path = Path.Combine(directory, "invalid.md");

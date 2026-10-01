@@ -20,6 +20,11 @@ public static class SpecificationFileLoader
                 StrictUtf8,
                 detectEncodingFromByteOrderMarks: false);
             var source = reader.ReadToEnd();
+            if (source.StartsWith('\uFEFF'))
+            {
+                source = source[1..];
+            }
+
             return new SpecificationFileLoadResult(
                 sourcePath,
                 TestSpecificationParser.Parse(source, sourcePath));
