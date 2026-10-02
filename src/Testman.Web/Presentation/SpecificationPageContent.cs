@@ -97,12 +97,12 @@ public sealed record SpecificationPageContent(
     private static IReadOnlyList<SpecificationPatternContent> CreatePatterns(
         IReadOnlyList<TestSpecificationCase> testCases)
     {
-        var major = CalculateRowSpans(testCases, item => item.MajorItem, _ => string.Empty);
+        var major = CalculateRowSpans(testCases, item => item.MajorItem, _ => 0);
         var middle = CalculateRowSpans(testCases, item => item.MiddleItem, item => item.MajorItem);
         var minor = CalculateRowSpans(
             testCases,
             item => item.MinorItem,
-            item => $"{item.MajorItem}\0{item.MiddleItem}");
+            item => (item.MajorItem, item.MiddleItem));
 
         return testCases.Select((testCase, index) => new SpecificationPatternContent(
             testCase.MajorItem,
@@ -113,10 +113,10 @@ public sealed record SpecificationPageContent(
             minor[index])).ToList();
     }
 
-    private static int[] CalculateRowSpans(
+    private static int[] CalculateRowSpans<TParent>(
         IReadOnlyList<TestSpecificationCase> testCases,
         Func<TestSpecificationCase, string> value,
-        Func<TestSpecificationCase, string> parent)
+        Func<TestSpecificationCase, TParent> parent)
     {
         var spans = Enumerable.Repeat(1, testCases.Count).ToArray();
         for (var start = 0; start < testCases.Count;)
@@ -132,7 +132,7 @@ public sealed record SpecificationPageContent(
             var end = start + 1;
             while (end < testCases.Count
                 && value(testCases[end]) == currentValue
-                && parent(testCases[end]) == currentParent)
+                && EqualityComparer<TParent>.Default.Equals(parent(testCases[end]), currentParent))
             {
                 spans[end] = 0;
                 end++;

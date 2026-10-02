@@ -237,6 +237,29 @@ public sealed class SpecificationPageContentTests
         Assert.Equal([2, 0, 1, 1, 1, 1], patterns.Select(item => item.MinorItemRowSpan));
     }
 
+    [Fact]
+    public void Create_does_not_merge_minor_items_when_structured_parent_values_differ()
+    {
+        var title = new TestSpecificationTitle(
+            "Structured parents",
+            1,
+            "Overview",
+            "None",
+            "None",
+            [
+                new TestSpecificationCase("TC-1", "A\0B", "C", "Same", "-", "One", 2, true),
+                new TestSpecificationCase("TC-2", "A", "B\0C", "Same", "-", "Two", 3, true),
+            ]);
+        var file = new SpecificationFileLoadResult(
+            "structured.md",
+            new TestSpecificationParseResult(1, [title], []));
+
+        var content = SpecificationPageContent.Create(new SpecificationCatalogResult([file], []));
+        var patterns = Assert.Single(Assert.Single(content.Files).Titles).Patterns;
+
+        Assert.Equal([1, 1], patterns.Select(item => item.MinorItemRowSpan));
+    }
+
     private static SpecificationFileLoadResult Parse(string path, string source) =>
         new(path, TestSpecificationParser.Parse(source, path));
 
