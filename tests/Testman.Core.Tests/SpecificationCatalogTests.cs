@@ -38,6 +38,23 @@ public sealed class SpecificationCatalogTests : IDisposable
     }
 
     [Fact]
+    public void Load_can_start_and_reports_a_diagnostic_when_a_file_has_no_title_block()
+    {
+        File.WriteAllText(
+            Path.Combine(directory, "empty.md"),
+            "Testman-Format-Version: 1",
+            new UTF8Encoding(false));
+
+        var catalog = SpecificationCatalog.Load(directory, Path.GetTempPath());
+
+        Assert.True(catalog.CanStart);
+        Assert.Single(catalog.Files);
+        Assert.Contains(catalog.Diagnostics, diagnostic =>
+            diagnostic.SourcePath.EndsWith("empty.md", StringComparison.Ordinal)
+            && diagnostic.Reason == "A title block is required.");
+    }
+
+    [Fact]
     public void Load_returns_path_resolution_diagnostics()
     {
         var catalog = SpecificationCatalog.Load("missing", directory);

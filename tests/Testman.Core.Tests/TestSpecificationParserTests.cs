@@ -4,6 +4,34 @@ namespace Testman.Core.Tests;
 
 public sealed class TestSpecificationParserTests
 {
+    [Theory]
+    [InlineData("Testman-Format-Version: 1")]
+    [InlineData("Testman-Format-Version: 1\n\n## Overview\n\nContent")]
+    public void Parse_reports_a_file_diagnostic_when_no_title_block_exists(string source)
+    {
+        var result = TestSpecificationParser.Parse(source, "empty.md");
+
+        Assert.Empty(result.Titles);
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal("empty.md", diagnostic.SourcePath);
+        Assert.Null(diagnostic.LineNumber);
+        Assert.Equal("A title block is required.", diagnostic.Reason);
+    }
+
+    [Fact]
+    public void Parse_reports_a_title_diagnostic_when_the_level_one_heading_is_empty()
+    {
+        var source = ValidSpecification("Login tests", "TC-1")
+            .Replace("# Login tests", "#");
+
+        var result = TestSpecificationParser.Parse(source, "empty-title.md");
+
+        Assert.Empty(result.Titles);
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal(3, diagnostic.LineNumber);
+        Assert.Equal("Title heading must not be empty.", diagnostic.Reason);
+    }
+
     [Fact]
     public void Parse_returns_a_valid_title_block()
     {

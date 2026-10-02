@@ -150,6 +150,31 @@ public sealed class CliWebHostTests : IDisposable
     }
 
     [Fact]
+    public async Task Home_page_starts_and_displays_a_diagnostic_when_the_file_has_no_title_block()
+    {
+        WriteFile("empty.md", "Testman-Format-Version: 1");
+        var port = FindAvailablePort();
+        using var process = StartProcess(
+            ["serve", "--specs", "empty.md", "--db", "results.db", "--port", port.ToString()]);
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+            var html = await GetWhenReady(client, process);
+
+            Assert.Contains("empty.md", html, StringComparison.Ordinal);
+            Assert.Contains("A title block is required.", html, StringComparison.Ordinal);
+            Assert.Contains("Needs attention", html, StringComparison.Ordinal);
+            Assert.DoesNotContain(">Ready<", html, StringComparison.Ordinal);
+        }
+        finally
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+        }
+    }
+
+    [Fact]
     public async Task Home_page_keeps_a_non_git_specification_visible_as_not_tested()
     {
         WriteFile("valid.md", ValidSpecification("Non Git title"));

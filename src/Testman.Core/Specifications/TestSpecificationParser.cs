@@ -34,6 +34,11 @@ public static class TestSpecificationParser
             .Select(item => item.index)
             .ToList();
 
+        if (titleIndexes.Count == 0)
+        {
+            diagnostics.Add(new SpecificationDiagnostic(sourcePath, null, "A title block is required."));
+        }
+
         for (var titlePosition = 0; titlePosition < titleIndexes.Count; titlePosition++)
         {
             var start = titleIndexes[titlePosition];
@@ -41,6 +46,12 @@ public static class TestSpecificationParser
             var heading = (HeadingBlock)blocks[start];
             var titleName = ReadHeadingText(source, heading);
             var titleBlocks = blocks.GetRange(start + 1, end - start - 1);
+
+            if (string.IsNullOrWhiteSpace(titleName))
+            {
+                diagnostics.Add(new SpecificationDiagnostic(sourcePath, heading.Line + 1, "Title heading must not be empty."));
+                continue;
+            }
 
             var sectionNames = titleBlocks
                 .OfType<HeadingBlock>()
