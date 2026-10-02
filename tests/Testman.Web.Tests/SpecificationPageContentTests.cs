@@ -182,6 +182,37 @@ public sealed class SpecificationPageContentTests
         Assert.Equal(0, summary.NotTested);
     }
 
+    [Fact]
+    public void Create_builds_a_cross_file_test_list_with_latest_status()
+    {
+        var first = Parse("first.md", ValidSpecification("First title", "Overview"));
+        var second = Parse("second.md", ValidSpecification("Second title", "Overview").Replace("TC-1", "TC-2", StringComparison.Ordinal));
+        var executedAt = new DateTimeOffset(2026, 10, 3, 1, 2, 3, TimeSpan.Zero);
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([first, second], []),
+            (_, id) => id == "TC-1"
+                ? [new TestResultRecord(1, 1, executedAt, "Tester", id, TestResultOutcome.Pass, null, "abc")]
+                : []);
+
+        Assert.Collection(
+            content.TestList,
+            item =>
+            {
+                Assert.Equal("TC-1", item.Id);
+                Assert.Equal("First title", item.Title);
+                Assert.Equal("first.md", item.SourcePath);
+                Assert.Equal("Pass", item.LatestResult?.OutcomeLabel);
+                Assert.Equal(executedAt.ToLocalTime(), item.LatestResult?.ExecutedAtLocal);
+            },
+            item =>
+            {
+                Assert.Equal("TC-2", item.Id);
+                Assert.Equal("Second title", item.Title);
+                Assert.Null(item.LatestResult);
+            });
+    }
+
     private static SpecificationFileLoadResult Parse(string path, string source) =>
         new(path, TestSpecificationParser.Parse(source, path));
 

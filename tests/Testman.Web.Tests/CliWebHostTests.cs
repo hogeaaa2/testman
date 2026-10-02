@@ -124,6 +124,9 @@ public sealed class CliWebHostTests : IDisposable
             var verificationHtml = await client.GetStringAsync("/?mode=verification");
 
             Assert.Contains("TC-1", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Test list", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Latest result", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Last executed", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Verification precondition", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Shared step", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Case step", verificationHtml, StringComparison.Ordinal);

@@ -6,7 +6,8 @@ namespace Testman.Web.Presentation;
 
 public sealed record SpecificationPageContent(
     IReadOnlyList<SpecificationDiagnosticContent> Diagnostics,
-    IReadOnlyList<SpecificationFileContent> Files)
+    IReadOnlyList<SpecificationFileContent> Files,
+    IReadOnlyList<SpecificationTestListItemContent> TestList)
 {
     public static SpecificationPageContent Create(
         SpecificationCatalogResult catalog,
@@ -27,7 +28,17 @@ public sealed record SpecificationPageContent(
             .Select(file => CreateFile(file, readHistory, showFileSummaries))
             .ToList();
 
-        return new SpecificationPageContent(diagnostics, files);
+        var testList = files
+            .SelectMany(file => file.Titles.SelectMany(title => title.VerificationCases
+                .Where(testCase => testCase.CanRegisterResult)
+                .Select(testCase => new SpecificationTestListItemContent(
+                    testCase.Id,
+                    title.Name,
+                    file.SourcePath,
+                    testCase.PreviousResult))))
+            .ToList();
+
+        return new SpecificationPageContent(diagnostics, files, testList);
     }
 
     private static SpecificationFileContent CreateFile(
@@ -113,6 +124,12 @@ public sealed record SpecificationFileSummaryContent(
     int Blocked,
     int NotApplicable,
     int NotTested);
+
+public sealed record SpecificationTestListItemContent(
+    string Id,
+    string Title,
+    string SourcePath,
+    TestResultContent? LatestResult);
 
 public sealed record SpecificationTitleContent(
     string Name,

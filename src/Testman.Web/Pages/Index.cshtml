@@ -43,6 +43,40 @@
     </div>
 </section>
 
+@if (Model.IsVerificationMode)
+{
+<section class="card border-0 shadow-sm mt-4" aria-labelledby="test-list-heading">
+    <div class="card-body p-4">
+        <h2 class="h4" id="test-list-heading">Test list</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Test ID</th>
+                        <th scope="col">Title</th>
+                        <th scope="col">Specification file</th>
+                        <th scope="col">Latest result</th>
+                        <th scope="col">Last executed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.PageContent.TestList)
+                    {
+                        <tr>
+                            <th scope="row">@item.Id</th>
+                            <td>@item.Title</td>
+                            <td>@item.SourcePath</td>
+                            <td>@(item.LatestResult?.OutcomeLabel ?? "Not Tested")</td>
+                            <td>@(item.LatestResult?.ExecutedAtLocal.ToString("g") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+}
+
 @if (!string.IsNullOrEmpty(Model.SuccessMessage))
 {
     <div class="alert alert-success" role="status">@Model.SuccessMessage</div>
