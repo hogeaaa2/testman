@@ -221,14 +221,14 @@ public sealed class CliWebHostTests : IDisposable
         {
             using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
             var page = await GetWhenReady(client, process, "/?mode=verification");
-            var values = SubmissionValues(page, confirmPartial: false);
+            var values = SubmissionValues(page);
 
             using var confirmationResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
             var confirmationHtml = await confirmationResponse.Content.ReadAsStringAsync();
             Assert.Contains("Not all test cases have a result", confirmationHtml, StringComparison.Ordinal);
             Assert.Equal(0L, ResultCount(databasePath));
 
-            values = SubmissionValues(confirmationHtml, confirmPartial: true);
+            values = SubmissionValues(confirmationHtml);
             using var savedResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
             var savedHtml = await savedResponse.Content.ReadAsStringAsync();
             Assert.Contains("Results saved.", savedHtml, StringComparison.Ordinal);
@@ -348,18 +348,23 @@ public sealed class CliWebHostTests : IDisposable
         Assert.True(process.ExitCode == 0, error);
     }
 
-    private Dictionary<string, string> SubmissionValues(string html, bool confirmPartial)
+    private Dictionary<string, string> SubmissionValues(string html)
     {
         var token = Regex.Match(
             html,
             "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"",
             RegexOptions.CultureInvariant).Groups[1].Value;
         Assert.NotEmpty(token);
+        var confirmPartial = Regex.Match(
+            html,
+            "name=\"ConfirmPartial\"[^>]*value=\"([^\"]+)\"",
+            RegexOptions.CultureInvariant).Groups[1].Value;
+        Assert.NotEmpty(confirmPartial);
         return new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = WebUtility.HtmlDecode(token),
             ["ExecutedBy"] = "Tester",
-            ["ConfirmPartial"] = confirmPartial.ToString(),
+            ["ConfirmPartial"] = confirmPartial,
             ["ResultCases[0].SourcePath"] = Path.Combine(directory, "valid.md"),
             ["ResultCases[0].TestCaseId"] = "TC-1",
             ["ResultCases[0].Outcome"] = "pass",

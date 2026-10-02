@@ -62,6 +62,7 @@ public sealed class IndexModel(
             {
                 ConfirmationMessage = response.Message;
                 ConfirmPartial = true;
+                ModelState.Remove(nameof(ConfirmPartial));
                 return Page();
             }
 
