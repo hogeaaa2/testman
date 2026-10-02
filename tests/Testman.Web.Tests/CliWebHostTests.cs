@@ -39,11 +39,13 @@ public sealed class CliWebHostTests : IDisposable
         WriteFile("valid.md", ValidSpecification("Valid title"));
         WriteFile("invalid.md", "Testman-Format-Version: 1\n\n# Invalid title");
         var port = FindAvailablePort();
+        var ignoredEnvironmentPort = FindAvailablePort();
         using var process = StartProcess(
             ["serve", "--specs", ".", "--port", port.ToString()],
             new Dictionary<string, string?>
             {
                 ["ASPNETCORE_ENVIRONMENT"] = "Development",
+                ["Kestrel__Endpoints__Http__Url"] = $"http://localhost:{ignoredEnvironmentPort}",
             });
 
         try

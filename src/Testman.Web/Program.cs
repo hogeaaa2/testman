@@ -9,6 +9,8 @@ if (!startup.CanStart)
 }
 
 var builder = WebApplication.CreateBuilder([]);
+builder.Configuration.Sources.Clear();
+builder.Configuration.AddInMemoryCollection();
 Testman.Web.LocalhostBindingGuard.Validate(builder.Configuration);
 builder.WebHost.UseUrls($"http://localhost:{startup.Command!.Port}");
 
