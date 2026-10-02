@@ -43,6 +43,26 @@
     </div>
 </section>
 
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success" role="status">@Model.SuccessMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.SystemErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">@Model.SystemErrorMessage</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" asp-validation-summary="ModelOnly"></div>
+}
+@if (!string.IsNullOrEmpty(Model.ConfirmationMessage))
+{
+    <div class="alert alert-warning" role="alert">@Model.ConfirmationMessage</div>
+}
+
+@{ var resultIndex = 0; }
+<form method="post">
+<input asp-for="ConfirmPartial" type="hidden" />
 @foreach (var file in Model.PageContent.Files)
 {
     <section class="card border-0 shadow-sm mt-4">
@@ -73,6 +93,7 @@
                                         <th scope="col">Steps</th>
                                         <th scope="col">Expected result</th>
                                         <th scope="col">Previous result</th>
+                                        <th scope="col">Result input</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -116,6 +137,28 @@
                                                     </details>
                                                 }
                                             </td>
+                                            <td>
+                                                @if (testCase.CanRegisterResult)
+                                                {
+                                                    <input asp-for="ResultCases[resultIndex].SourcePath" type="hidden" />
+                                                    <input asp-for="ResultCases[resultIndex].TestCaseId" type="hidden" />
+                                                    <label class="visually-hidden" for="ResultCases_@(resultIndex)__Outcome">Result for @testCase.Id</label>
+                                                    <select asp-for="ResultCases[resultIndex].Outcome" class="form-select mb-2">
+                                                        <option value="">Select result</option>
+                                                        <option value="pass">Pass</option>
+                                                        <option value="fail">Fail</option>
+                                                        <option value="blocked">Blocked</option>
+                                                        <option value="not_applicable">N/A</option>
+                                                    </select>
+                                                    <label class="visually-hidden" for="ResultCases_@(resultIndex)__Comment">Comment for @testCase.Id</label>
+                                                    <textarea asp-for="ResultCases[resultIndex].Comment" class="form-control" rows="2" placeholder="Optional comment"></textarea>
+                                                    resultIndex++;
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-body-secondary">Registration unavailable</span>
+                                                }
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>
@@ -152,3 +195,18 @@
         </div>
     </section>
 }
+@if (Model.IsVerificationMode)
+{
+    <section class="card border-0 shadow-sm mt-4">
+        <div class="card-body d-flex flex-column flex-md-row gap-3 align-items-md-end">
+            <div class="flex-grow-1">
+                <label asp-for="ExecutedBy" class="form-label">Executed by</label>
+                <input asp-for="ExecutedBy" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary">
+                @(Model.ConfirmPartial ? "Confirm selected results" : "Save results")
+            </button>
+        </div>
+    </section>
+}
+</form>

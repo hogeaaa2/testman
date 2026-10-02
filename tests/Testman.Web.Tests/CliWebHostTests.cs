@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Testman.Core.Persistence;
 
 namespace Testman.Web.Tests;
@@ -198,6 +199,49 @@ public sealed class CliWebHostTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task Verification_form_confirms_partial_selection_then_redirects_after_saving()
+    {
+        var specification = ValidSpecification("Submit results").Replace(
+            "| TC-1 | Major | Middle | Minor | Case step | Expected success |",
+            "| TC-1 | Major | Middle | Minor | Case step | Expected success |\n| TC-2 | Major | Middle | Other | - | Other success |",
+            StringComparison.Ordinal);
+        WriteFile("valid.md", specification);
+        Git("init");
+        Git("config", "user.name", "Test User");
+        Git("config", "user.email", "test@example.invalid");
+        Git("add", "valid.md");
+        Git("commit", "-m", "Add specification");
+        var databasePath = Path.Combine(directory, "results.db");
+        var port = FindAvailablePort();
+        using var process = StartProcess(
+            ["serve", "--specs", "valid.md", "--db", databasePath, "--port", port.ToString()]);
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+            var page = await GetWhenReady(client, process, "/?mode=verification");
+            var values = SubmissionValues(page, confirmPartial: false);
+
+            using var confirmationResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
+            var confirmationHtml = await confirmationResponse.Content.ReadAsStringAsync();
+            Assert.Contains("Not all test cases have a result", confirmationHtml, StringComparison.Ordinal);
+            Assert.Equal(0L, ResultCount(databasePath));
+
+            values = SubmissionValues(confirmationHtml, confirmPartial: true);
+            using var savedResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
+            var savedHtml = await savedResponse.Content.ReadAsStringAsync();
+            Assert.Contains("Results saved.", savedHtml, StringComparison.Ordinal);
+            Assert.Contains("History (1)", savedHtml, StringComparison.Ordinal);
+            Assert.Equal(1L, ResultCount(databasePath));
+        }
+        finally
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+        }
+    }
+
     public void Dispose()
     {
         foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
@@ -205,7 +249,18 @@ public sealed class CliWebHostTests : IDisposable
             entry.Attributes = FileAttributes.Normal;
         }
 
-        Directory.Delete(directory, recursive: true);
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+                break;
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                Thread.Sleep(50);
+            }
+        }
     }
 
     private Process StartProcess(
@@ -291,6 +346,37 @@ public sealed class CliWebHostTests : IDisposable
         var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
         Assert.True(process.ExitCode == 0, error);
+    }
+
+    private Dictionary<string, string> SubmissionValues(string html, bool confirmPartial)
+    {
+        var token = Regex.Match(
+            html,
+            "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"",
+            RegexOptions.CultureInvariant).Groups[1].Value;
+        Assert.NotEmpty(token);
+        return new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = WebUtility.HtmlDecode(token),
+            ["ExecutedBy"] = "Tester",
+            ["ConfirmPartial"] = confirmPartial.ToString(),
+            ["ResultCases[0].SourcePath"] = Path.Combine(directory, "valid.md"),
+            ["ResultCases[0].TestCaseId"] = "TC-1",
+            ["ResultCases[0].Outcome"] = "pass",
+            ["ResultCases[0].Comment"] = "works",
+            ["ResultCases[1].SourcePath"] = Path.Combine(directory, "valid.md"),
+            ["ResultCases[1].TestCaseId"] = "TC-2",
+            ["ResultCases[1].Outcome"] = string.Empty,
+            ["ResultCases[1].Comment"] = string.Empty,
+        };
+    }
+
+    private static long ResultCount(string databasePath)
+    {
+        using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM test_results";
+        return (long)command.ExecuteScalar()!;
     }
 
     private static string ValidSpecification(string title) => $$"""

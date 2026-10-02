@@ -40,6 +40,11 @@ builder.Services.AddSingleton(services => new SpecificationPageContentSource(
     startup.Command.SpecificationPath,
     workingDirectory,
     services.GetRequiredService<ResultHistoryStore>()));
+builder.Services.AddSingleton(services => new ResultSubmissionCoordinator(
+    startup.Command.SpecificationPath,
+    workingDirectory,
+    services.GetRequiredService<ResultHistoryStore>(),
+    TimeProvider.System));
 
 var app = builder.Build();
 
