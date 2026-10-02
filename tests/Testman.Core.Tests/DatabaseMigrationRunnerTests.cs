@@ -45,17 +45,28 @@ public sealed class DatabaseMigrationRunnerTests : IDisposable
         Assert.Equal(1, ExecuteScalar<long>(verified, "SELECT COUNT(*) FROM test_results"));
     }
 
+    [Fact]
+    public void Opened_connections_enforce_the_submission_foreign_key_without_cascade_delete()
+    {
+        DatabaseMigrationRunner.Apply(databasePath);
+        using var connection = OpenConnection();
+
+        Assert.Throws<SqliteException>(() => Execute(
+            connection,
+            "INSERT INTO test_results(submission_id, repository_root, source_file, test_case_id, result, specification_revision) VALUES (999, 'D:/repo', 'spec.md', 'TC-1', 'pass', 'abc123')"));
+
+        Execute(connection, "INSERT INTO result_submissions(executed_at_utc, executed_by) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester')");
+        Execute(connection, "INSERT INTO test_results(submission_id, repository_root, source_file, test_case_id, result, specification_revision) VALUES (1, 'D:/repo', 'spec.md', 'TC-1', 'pass', 'abc123')");
+
+        Assert.Throws<SqliteException>(() => Execute(connection, "DELETE FROM result_submissions WHERE id = 1"));
+        Assert.Equal(1, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM test_results"));
+    }
+
     public void Dispose() => Directory.Delete(directory, recursive: true);
 
     private SqliteConnection OpenConnection()
     {
-        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
-        {
-            DataSource = databasePath,
-            Pooling = false,
-        }.ToString());
-        connection.Open();
-        return connection;
+        return SqliteConnectionFactory.Open(databasePath, pooling: false);
     }
 
     private static IReadOnlyList<string> ReadStrings(SqliteConnection connection, string sql)

@@ -18,14 +18,7 @@ public static class DatabaseMigrationRunner
         var fullPath = Path.GetFullPath(databasePath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
 
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = fullPath,
-            Pooling = false,
-        }.ToString();
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        Execute(connection, "PRAGMA foreign_keys = ON;");
+        using var connection = SqliteConnectionFactory.Open(fullPath, pooling: false);
 
         var appliedVersions = ReadAppliedVersions(connection);
         foreach (var migration in Migrations.Where(item => !appliedVersions.Contains(item.Version)))
