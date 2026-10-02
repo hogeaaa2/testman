@@ -80,10 +80,7 @@ public sealed record SpecificationPageContent(
             SafeMarkdownRenderer.Render(title.OverviewMarkdown),
             SafeMarkdownRenderer.Render(title.PreconditionsMarkdown),
             SafeMarkdownRenderer.Render(title.CommonStepsMarkdown),
-            title.TestCases.Select(testCase => new SpecificationPatternContent(
-                testCase.MajorItem,
-                testCase.MiddleItem,
-                testCase.MinorItem)).ToList(),
+            CreatePatterns(title.TestCases),
             title.TestCases.Select(testCase =>
             {
                 var history = readHistory?.Invoke(sourcePath, testCase.Id) ?? [];
@@ -96,6 +93,57 @@ public sealed record SpecificationPageContent(
                     historyContent.FirstOrDefault(),
                     historyContent);
             }).ToList());
+
+    private static IReadOnlyList<SpecificationPatternContent> CreatePatterns(
+        IReadOnlyList<TestSpecificationCase> testCases)
+    {
+        var major = CalculateRowSpans(testCases, item => item.MajorItem, _ => string.Empty);
+        var middle = CalculateRowSpans(testCases, item => item.MiddleItem, item => item.MajorItem);
+        var minor = CalculateRowSpans(
+            testCases,
+            item => item.MinorItem,
+            item => $"{item.MajorItem}\0{item.MiddleItem}");
+
+        return testCases.Select((testCase, index) => new SpecificationPatternContent(
+            testCase.MajorItem,
+            testCase.MiddleItem,
+            testCase.MinorItem,
+            major[index],
+            middle[index],
+            minor[index])).ToList();
+    }
+
+    private static int[] CalculateRowSpans(
+        IReadOnlyList<TestSpecificationCase> testCases,
+        Func<TestSpecificationCase, string> value,
+        Func<TestSpecificationCase, string> parent)
+    {
+        var spans = Enumerable.Repeat(1, testCases.Count).ToArray();
+        for (var start = 0; start < testCases.Count;)
+        {
+            var currentValue = value(testCases[start]);
+            if (currentValue == "-")
+            {
+                start++;
+                continue;
+            }
+
+            var currentParent = parent(testCases[start]);
+            var end = start + 1;
+            while (end < testCases.Count
+                && value(testCases[end]) == currentValue
+                && parent(testCases[end]) == currentParent)
+            {
+                spans[end] = 0;
+                end++;
+            }
+
+            spans[start] = end - start;
+            start = end;
+        }
+
+        return spans;
+    }
 
     private static TestResultContent CreateResult(TestResultRecord result) =>
         new(
@@ -142,7 +190,10 @@ public sealed record SpecificationTitleContent(
 public sealed record SpecificationPatternContent(
     string MajorItem,
     string MiddleItem,
-    string MinorItem);
+    string MinorItem,
+    int MajorItemRowSpan,
+    int MiddleItemRowSpan,
+    int MinorItemRowSpan);
 
 public sealed record SpecificationVerificationCaseContent(
     string Id,

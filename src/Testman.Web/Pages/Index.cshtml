@@ -228,9 +228,18 @@
                                     @foreach (var pattern in title.Patterns)
                                     {
                                         <tr>
-                                            <td>@pattern.MajorItem</td>
-                                            <td>@pattern.MiddleItem</td>
-                                            <td>@pattern.MinorItem</td>
+                                            @if (pattern.MajorItemRowSpan > 0)
+                                            {
+                                                <td rowspan="@pattern.MajorItemRowSpan">@pattern.MajorItem</td>
+                                            }
+                                            @if (pattern.MiddleItemRowSpan > 0)
+                                            {
+                                                <td rowspan="@pattern.MiddleItemRowSpan">@pattern.MiddleItem</td>
+                                            }
+                                            @if (pattern.MinorItemRowSpan > 0)
+                                            {
+                                                <td rowspan="@pattern.MinorItemRowSpan">@pattern.MinorItem</td>
+                                            }
                                         </tr>
                                     }
                                 </tbody>

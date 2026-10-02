@@ -213,6 +213,30 @@ public sealed class SpecificationPageContentTests
             });
     }
 
+    [Fact]
+    public void Create_calculates_hierarchical_pattern_row_spans_without_merging_hyphens()
+    {
+        var source = ValidSpecification("Merged", "Overview").Replace(
+            "| TC-1 | Major | Middle | Minor | - | Success |",
+            """
+            | TC-1 | A | X | Same | - | Success |
+            | TC-2 | A | X | Same | - | Success |
+            | TC-3 | A | Y | Same | - | Success |
+            | TC-4 | B | Y | Same | - | Success |
+            | TC-5 | - | - | - | - | Success |
+            | TC-6 | - | - | - | - | Success |
+            """,
+            StringComparison.Ordinal);
+        var file = Parse("merged.md", source);
+
+        var content = SpecificationPageContent.Create(new SpecificationCatalogResult([file], []));
+        var patterns = Assert.Single(Assert.Single(content.Files).Titles).Patterns;
+
+        Assert.Equal([3, 0, 0, 1, 1, 1], patterns.Select(item => item.MajorItemRowSpan));
+        Assert.Equal([2, 0, 1, 1, 1, 1], patterns.Select(item => item.MiddleItemRowSpan));
+        Assert.Equal([2, 0, 1, 1, 1, 1], patterns.Select(item => item.MinorItemRowSpan));
+    }
+
     private static SpecificationFileLoadResult Parse(string path, string source) =>
         new(path, TestSpecificationParser.Parse(source, path));
 
