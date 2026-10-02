@@ -70,6 +70,19 @@
             <span>@file.SourcePath</span>
             <span class="badge text-bg-secondary">Format version @file.FormatVersion</span>
         </div>
+        @if (file.Summary is not null)
+        {
+            <div class="card-body border-bottom py-3">
+                <div class="d-flex flex-wrap gap-2" aria-label="Current test status">
+                    <span class="badge text-bg-dark">Total @file.Summary.Total</span>
+                    <span class="badge text-bg-success">Pass @file.Summary.Pass</span>
+                    <span class="badge text-bg-danger">Fail @file.Summary.Fail</span>
+                    <span class="badge text-bg-warning">Blocked @file.Summary.Blocked</span>
+                    <span class="badge text-bg-info">N/A @file.Summary.NotApplicable</span>
+                    <span class="badge text-bg-secondary">Not Tested @file.Summary.NotTested</span>
+                </div>
+            </div>
+        }
         <div class="card-body p-4">
             @foreach (var title in file.Titles)
             {

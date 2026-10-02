@@ -98,6 +98,9 @@ public sealed class CliWebHostTests : IDisposable
             Assert.DoesNotContain("TC-1", html, StringComparison.Ordinal);
             Assert.Contains("Test patterns", html, StringComparison.Ordinal);
             Assert.Contains("Verification", html, StringComparison.Ordinal);
+            Assert.Contains("Current test status", html, StringComparison.Ordinal);
+            Assert.Contains("Total 1", html, StringComparison.Ordinal);
+            Assert.Contains("Not Tested 1", html, StringComparison.Ordinal);
             Assert.Contains("/lib/bootstrap/dist/css/bootstrap.min.", html, StringComparison.Ordinal);
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
 
@@ -128,6 +131,8 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Pass", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("History (1)", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Pass 1", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Not Tested 0", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("&lt;script&gt;tester&lt;/script&gt;", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("&lt;img src=x onerror=alert", verificationHtml, StringComparison.Ordinal);
             Assert.DoesNotContain("<script>tester</script>", verificationHtml, StringComparison.OrdinalIgnoreCase);
@@ -156,6 +161,7 @@ public sealed class CliWebHostTests : IDisposable
 
             Assert.Contains("Non Git title", html, StringComparison.Ordinal);
             Assert.Contains("Not Tested", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("Current test status", html, StringComparison.Ordinal);
         }
         finally
         {

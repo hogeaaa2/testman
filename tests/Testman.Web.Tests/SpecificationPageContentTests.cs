@@ -112,6 +112,76 @@ public sealed class SpecificationPageContentTests
         Assert.Empty(testCase.History);
     }
 
+    [Fact]
+    public void Create_summarizes_only_current_registerable_cases_for_directory_input()
+    {
+        var source = ValidSpecification("Summary", "Overview").Replace(
+            "| TC-1 | Major | Middle | Minor | - | Success |",
+            """
+            | TC-1 | Major | Middle | One | - | Success |
+            | TC-2 | Major | Middle | Two | - | Success |
+            | TC-3 | Major | Middle | Three | - | Success |
+            | TC-4 | Major | Middle | Four | - | Success |
+            | TC-5 | Major | Middle | Five | - | Success |
+            """,
+            StringComparison.Ordinal);
+        var file = Parse("summary.md", source);
+        var outcomes = new Dictionary<string, TestResultOutcome>
+        {
+            ["TC-1"] = TestResultOutcome.Pass,
+            ["TC-2"] = TestResultOutcome.Fail,
+            ["TC-3"] = TestResultOutcome.Blocked,
+            ["TC-4"] = TestResultOutcome.NotApplicable,
+        };
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], file.Specification.Diagnostics),
+            (_, id) => outcomes.TryGetValue(id, out var outcome)
+                ? [new TestResultRecord(1, 1, DateTimeOffset.UtcNow, "Tester", id, outcome, null, "abc")]
+                : [],
+            showFileSummaries: true);
+
+        var summary = Assert.Single(content.Files).Summary;
+        Assert.NotNull(summary);
+        Assert.Equal(5, summary.Total);
+        Assert.Equal(1, summary.Pass);
+        Assert.Equal(1, summary.Fail);
+        Assert.Equal(1, summary.Blocked);
+        Assert.Equal(1, summary.NotApplicable);
+        Assert.Equal(1, summary.NotTested);
+    }
+
+    [Fact]
+    public void Create_omits_file_summary_for_single_file_input()
+    {
+        var file = Parse("single.md", ValidSpecification("Single", "Overview"));
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], file.Specification.Diagnostics),
+            showFileSummaries: false);
+
+        Assert.Null(Assert.Single(content.Files).Summary);
+    }
+
+    [Fact]
+    public void Create_excludes_duplicate_ids_from_the_file_summary()
+    {
+        var source = ValidSpecification("Duplicates", "Overview").Replace(
+            "| TC-1 | Major | Middle | Minor | - | Success |",
+            "| TC-1 | Major | Middle | One | - | Success |\n| TC-1 | Major | Middle | Two | - | Success |",
+            StringComparison.Ordinal);
+        var file = Parse("duplicates.md", source);
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], file.Specification.Diagnostics),
+            showFileSummaries: true);
+
+        var summary = Assert.Single(content.Files).Summary;
+        Assert.NotNull(summary);
+        Assert.Equal(0, summary.Total);
+        Assert.Equal(0, summary.NotTested);
+    }
+
     private static SpecificationFileLoadResult Parse(string path, string source) =>
         new(path, TestSpecificationParser.Parse(source, path));
 

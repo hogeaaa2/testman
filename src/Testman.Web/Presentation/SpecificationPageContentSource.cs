@@ -11,7 +11,11 @@ public sealed class SpecificationPageContentSource(
     public SpecificationPageContent Load()
     {
         var catalog = SpecificationCatalog.Load(specificationPath, workingDirectory);
-        return SpecificationPageContent.Create(catalog, ReadHistory);
+        var fullSpecificationPath = Path.GetFullPath(specificationPath, workingDirectory);
+        return SpecificationPageContent.Create(
+            catalog,
+            ReadHistory,
+            showFileSummaries: Directory.Exists(fullSpecificationPath));
     }
 
     private IReadOnlyList<TestResultRecord> ReadHistory(string sourcePath, string testCaseId)
@@ -21,7 +25,7 @@ public sealed class SpecificationPageContentSource(
             var identity = GitSpecificationIdentity.Resolve(sourcePath);
             return resultHistory.ReadHistory(identity, testCaseId);
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {
             return [];
         }

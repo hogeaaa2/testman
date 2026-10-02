@@ -10,7 +10,8 @@ public sealed record SpecificationPageContent(
 {
     public static SpecificationPageContent Create(
         SpecificationCatalogResult catalog,
-        Func<string, string, IReadOnlyList<TestResultRecord>>? readHistory = null)
+        Func<string, string, IReadOnlyList<TestResultRecord>>? readHistory = null,
+        bool showFileSummaries = false)
     {
         ArgumentNullException.ThrowIfNull(catalog);
 
@@ -23,16 +24,41 @@ public sealed record SpecificationPageContent(
 
         var files = catalog.Files
             .Where(file => file.Specification.Titles.Count > 0)
-            .Select(file => new SpecificationFileContent(
-                file.SourcePath,
-                file.Specification.FormatVersion,
-                file.Specification.Titles
-                    .Select(title => CreateTitle(file.SourcePath, title, readHistory))
-                    .ToList()))
+            .Select(file => CreateFile(file, readHistory, showFileSummaries))
             .ToList();
 
         return new SpecificationPageContent(diagnostics, files);
     }
+
+    private static SpecificationFileContent CreateFile(
+        SpecificationFileLoadResult file,
+        Func<string, string, IReadOnlyList<TestResultRecord>>? readHistory,
+        bool showFileSummary)
+    {
+        var titles = file.Specification.Titles
+            .Select(title => CreateTitle(file.SourcePath, title, readHistory))
+            .ToList();
+        var currentCases = titles
+            .SelectMany(title => title.VerificationCases)
+            .Where(testCase => testCase.CanRegisterResult)
+            .ToList();
+
+        return new SpecificationFileContent(
+            file.SourcePath,
+            file.Specification.FormatVersion,
+            titles,
+            showFileSummary ? CreateSummary(currentCases) : null);
+    }
+
+    private static SpecificationFileSummaryContent CreateSummary(
+        IReadOnlyList<SpecificationVerificationCaseContent> testCases) =>
+        new(
+            testCases.Count,
+            testCases.Count(item => item.PreviousResult?.Outcome == TestResultOutcome.Pass),
+            testCases.Count(item => item.PreviousResult?.Outcome == TestResultOutcome.Fail),
+            testCases.Count(item => item.PreviousResult?.Outcome == TestResultOutcome.Blocked),
+            testCases.Count(item => item.PreviousResult?.Outcome == TestResultOutcome.NotApplicable),
+            testCases.Count(item => item.PreviousResult is null));
 
     private static SpecificationTitleContent CreateTitle(
         string sourcePath,
@@ -77,7 +103,16 @@ public sealed record SpecificationDiagnosticContent(
 public sealed record SpecificationFileContent(
     string SourcePath,
     int? FormatVersion,
-    IReadOnlyList<SpecificationTitleContent> Titles);
+    IReadOnlyList<SpecificationTitleContent> Titles,
+    SpecificationFileSummaryContent? Summary);
+
+public sealed record SpecificationFileSummaryContent(
+    int Total,
+    int Pass,
+    int Fail,
+    int Blocked,
+    int NotApplicable,
+    int NotTested);
 
 public sealed record SpecificationTitleContent(
     string Name,
