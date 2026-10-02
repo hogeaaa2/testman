@@ -77,10 +77,15 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
             "Tester",
             [new ResultCaseInput("\0", "TC-1", "pass", null), Input("TC-2", "pass")],
             ConfirmPartial: true));
+        var wrongCase = coordinator.Submit(new ResultSubmissionRequest(
+            "Tester",
+            [Input("tc-1", "pass"), Input("TC-2", "pass")],
+            ConfirmPartial: true));
 
         Assert.Equal(ResultSubmissionStatus.Invalid, empty.Status);
         Assert.Equal(ResultSubmissionStatus.Invalid, tampered.Status);
         Assert.Equal(ResultSubmissionStatus.Invalid, malformedPath.Status);
+        Assert.Equal(ResultSubmissionStatus.Invalid, wrongCase.Status);
         Assert.Equal(0L, CountResults());
     }
 

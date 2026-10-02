@@ -118,13 +118,12 @@ public sealed class ResultSubmissionCoordinator(
             return false;
         }
 
-        var expected = current.Select(item => Key(item.SourcePath, item.TestCaseId)).ToHashSet(PathComparer);
-        var actual = new HashSet<string>(PathComparer);
+        var normalized = new List<CurrentCase>();
         try
         {
             foreach (var item in submitted)
             {
-                actual.Add(Key(Path.GetFullPath(item.SourcePath), item.TestCaseId));
+                normalized.Add(new CurrentCase(Path.GetFullPath(item.SourcePath), item.TestCaseId));
             }
         }
         catch (Exception exception) when (exception is ArgumentException
@@ -134,10 +133,9 @@ public sealed class ResultSubmissionCoordinator(
             return false;
         }
 
-        return actual.Count == submitted.Count && actual.SetEquals(expected);
+        return normalized.Distinct(CurrentCaseComparer.Instance).Count() == submitted.Count
+            && current.All(expected => normalized.Contains(expected, CurrentCaseComparer.Instance));
     }
-
-    private static string Key(string sourcePath, string testCaseId) => $"{sourcePath}\0{testCaseId}";
 
     private static bool TryParseOutcome(string value, out TestResultOutcome outcome)
     {
@@ -156,4 +154,20 @@ public sealed class ResultSubmissionCoordinator(
         new(ResultSubmissionStatus.Invalid, message);
 
     private sealed record CurrentCase(string SourcePath, string TestCaseId);
+
+    private sealed class CurrentCaseComparer : IEqualityComparer<CurrentCase>
+    {
+        public static CurrentCaseComparer Instance { get; } = new();
+
+        public bool Equals(CurrentCase? left, CurrentCase? right) =>
+            ReferenceEquals(left, right)
+            || left is not null
+            && right is not null
+            && PathComparer.Equals(left.SourcePath, right.SourcePath)
+            && StringComparer.Ordinal.Equals(left.TestCaseId, right.TestCaseId);
+
+        public int GetHashCode(CurrentCase value) => HashCode.Combine(
+            PathComparer.GetHashCode(value.SourcePath),
+            StringComparer.Ordinal.GetHashCode(value.TestCaseId));
+    }
 }
