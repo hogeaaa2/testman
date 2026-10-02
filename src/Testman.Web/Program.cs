@@ -10,11 +10,12 @@ if (!startup.CanStart)
 
 var builder = WebApplication.CreateBuilder([]);
 Testman.Web.LocalhostBindingGuard.Validate(builder.Configuration);
+builder.WebHost.UseUrls($"http://localhost:{startup.Command!.Port}");
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton(new SpecificationPageContentSource(
-    startup.Command!.SpecificationPath,
+    startup.Command.SpecificationPath,
     Environment.CurrentDirectory));
 
 var app = builder.Build();

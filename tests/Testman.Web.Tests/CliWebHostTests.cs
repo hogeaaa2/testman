@@ -40,10 +40,9 @@ public sealed class CliWebHostTests : IDisposable
         WriteFile("invalid.md", "Testman-Format-Version: 1\n\n# Invalid title");
         var port = FindAvailablePort();
         using var process = StartProcess(
-            ["serve", "--specs", "."],
+            ["serve", "--specs", ".", "--port", port.ToString()],
             new Dictionary<string, string?>
             {
-                ["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}",
                 ["ASPNETCORE_ENVIRONMENT"] = "Development",
             });
 
