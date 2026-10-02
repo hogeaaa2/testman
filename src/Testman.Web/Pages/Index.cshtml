@@ -72,6 +72,7 @@
                                         <th scope="col">Test ID</th>
                                         <th scope="col">Steps</th>
                                         <th scope="col">Expected result</th>
+                                        <th scope="col">Previous result</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -81,6 +82,40 @@
                                             <th scope="row">@testCase.Id</th>
                                             <td>@Html.Raw(testCase.StepsHtml)</td>
                                             <td>@Html.Raw(testCase.ExpectedResultHtml)</td>
+                                            <td>
+                                                @if (testCase.PreviousResult is null)
+                                                {
+                                                    <span class="badge text-bg-secondary">Not Tested</span>
+                                                }
+                                                else
+                                                {
+                                                    <div class="d-flex flex-column gap-1 align-items-start">
+                                                        <span class="badge text-bg-primary">@testCase.PreviousResult.OutcomeLabel</span>
+                                                        <small>@testCase.PreviousResult.ExecutedAtLocal.ToString("g")</small>
+                                                        <small class="text-body-secondary">@testCase.PreviousResult.ExecutedBy</small>
+                                                    </div>
+                                                }
+                                                @if (testCase.History.Count > 0)
+                                                {
+                                                    <details class="mt-2">
+                                                        <summary>History (@testCase.History.Count)</summary>
+                                                        <ol class="small ps-3 mt-2 mb-0">
+                                                            @foreach (var result in testCase.History)
+                                                            {
+                                                                <li class="mb-2">
+                                                                    <strong>@result.OutcomeLabel</strong>
+                                                                    <span> — @result.ExecutedAtLocal.ToString("g") — @result.ExecutedBy</span>
+                                                                    @if (!string.IsNullOrEmpty(result.Comment))
+                                                                    {
+                                                                        <div>@result.Comment</div>
+                                                                    }
+                                                                    <code>@result.SpecificationRevision</code>
+                                                                </li>
+                                                            }
+                                                        </ol>
+                                                    </details>
+                                                }
+                                            </td>
                                         </tr>
                                     }
                                 </tbody>

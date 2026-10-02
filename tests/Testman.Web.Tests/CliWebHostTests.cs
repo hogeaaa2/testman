@@ -108,6 +108,8 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Shared step", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Case step", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Not Tested", verificationHtml, StringComparison.Ordinal);
             Assert.DoesNotContain("Safe overview", verificationHtml, StringComparison.Ordinal);
         }
         finally

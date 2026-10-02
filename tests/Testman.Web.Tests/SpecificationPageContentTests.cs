@@ -1,3 +1,4 @@
+using Testman.Core.Persistence;
 using Testman.Core.Specifications;
 using Testman.Web.Presentation;
 
@@ -67,6 +68,48 @@ public sealed class SpecificationPageContentTests
         Assert.Contains("<strong>save</strong>", testCase.StepsHtml, StringComparison.Ordinal);
         Assert.Contains("<em>success</em>", testCase.ExpectedResultHtml, StringComparison.Ordinal);
         Assert.True(testCase.CanRegisterResult);
+    }
+
+    [Fact]
+    public void Create_adds_the_latest_result_and_history_to_verification_cases()
+    {
+        var file = Parse("verification.md", ValidSpecification("Verification", "Overview"));
+        var executedAtUtc = new DateTimeOffset(2026, 10, 2, 3, 4, 5, TimeSpan.Zero);
+        var history = new[]
+        {
+            new TestResultRecord(2, 2, executedAtUtc, "Latest", "TC-1", TestResultOutcome.Pass, "done", "def456"),
+            new TestResultRecord(1, 1, executedAtUtc.AddDays(-1), "First", "TC-1", TestResultOutcome.Fail, null, "abc123"),
+        };
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], file.Specification.Diagnostics),
+            (sourcePath, testCaseId) =>
+            {
+                Assert.Equal("verification.md", sourcePath);
+                Assert.Equal("TC-1", testCaseId);
+                return history;
+            });
+
+        var testCase = Assert.Single(Assert.Single(Assert.Single(content.Files).Titles).VerificationCases);
+        Assert.Equal(TestResultOutcome.Pass, testCase.PreviousResult?.Outcome);
+        Assert.Equal(executedAtUtc.ToLocalTime(), testCase.PreviousResult?.ExecutedAtLocal);
+        Assert.Equal(2, testCase.History.Count);
+        Assert.Equal("def456", testCase.History[0].SpecificationRevision);
+        Assert.Equal("First", testCase.History[1].ExecutedBy);
+    }
+
+    [Fact]
+    public void Create_represents_missing_history_as_not_tested()
+    {
+        var file = Parse("verification.md", ValidSpecification("Verification", "Overview"));
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], file.Specification.Diagnostics),
+            (_, _) => []);
+
+        var testCase = Assert.Single(Assert.Single(Assert.Single(content.Files).Titles).VerificationCases);
+        Assert.Null(testCase.PreviousResult);
+        Assert.Empty(testCase.History);
     }
 
     private static SpecificationFileLoadResult Parse(string path, string source) =>

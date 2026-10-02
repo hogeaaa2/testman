@@ -11,9 +11,10 @@ if (!startup.CanStart)
     return 1;
 }
 
+string databasePath;
 try
 {
-    var databasePath = Path.GetFullPath(startup.Command!.DatabasePath, workingDirectory);
+    databasePath = Path.GetFullPath(startup.Command!.DatabasePath, workingDirectory);
     DatabaseMigrationRunner.Apply(databasePath);
 }
 catch (Exception exception) when (exception is ArgumentException
@@ -34,9 +35,11 @@ builder.WebHost.UseUrls($"http://localhost:{startup.Command.Port}");
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton(new SpecificationPageContentSource(
+builder.Services.AddSingleton(new ResultHistoryStore(databasePath));
+builder.Services.AddSingleton(services => new SpecificationPageContentSource(
     startup.Command.SpecificationPath,
-    workingDirectory));
+    workingDirectory,
+    services.GetRequiredService<ResultHistoryStore>()));
 
 var app = builder.Build();
 
