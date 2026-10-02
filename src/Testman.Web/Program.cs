@@ -1,24 +1,29 @@
 using Testman.Core.Commands;
+using Testman.Core.Persistence;
 using Testman.Web.Presentation;
 
-var startup = ServeStartup.Prepare(args, Environment.CurrentDirectory);
+var workingDirectory = Environment.CurrentDirectory;
+var startup = ServeStartup.Prepare(args, workingDirectory);
 if (!startup.CanStart)
 {
     Console.Error.WriteLine(startup.Error);
     return 1;
 }
 
+var databasePath = Path.GetFullPath(startup.Command!.DatabasePath, workingDirectory);
+DatabaseMigrationRunner.Apply(databasePath);
+
 var builder = WebApplication.CreateBuilder([]);
 builder.Configuration.Sources.Clear();
 builder.Configuration.AddInMemoryCollection();
 Testman.Web.LocalhostBindingGuard.Validate(builder.Configuration);
-builder.WebHost.UseUrls($"http://localhost:{startup.Command!.Port}");
+builder.WebHost.UseUrls($"http://localhost:{startup.Command.Port}");
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddSingleton(new SpecificationPageContentSource(
     startup.Command.SpecificationPath,
-    Environment.CurrentDirectory));
+    workingDirectory));
 
 var app = builder.Build();
 

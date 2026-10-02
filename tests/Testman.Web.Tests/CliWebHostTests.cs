@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Testman.Core.Persistence;
 
 namespace Testman.Web.Tests;
 
@@ -40,8 +41,9 @@ public sealed class CliWebHostTests : IDisposable
         WriteFile("invalid.md", "Testman-Format-Version: 1\n\n# Invalid title");
         var port = FindAvailablePort();
         var ignoredEnvironmentPort = FindAvailablePort();
+        var relativeDatabasePath = Path.Combine("data", "results.db");
         using var process = StartProcess(
-            ["serve", "--specs", ".", "--port", port.ToString()],
+            ["serve", "--specs", ".", "--db", relativeDatabasePath, "--port", port.ToString()],
             new Dictionary<string, string?>
             {
                 ["ASPNETCORE_ENVIRONMENT"] = "Development",
@@ -52,6 +54,15 @@ public sealed class CliWebHostTests : IDisposable
         {
             using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
             var html = await GetWhenReady(client, process);
+
+            var databasePath = Path.Combine(directory, relativeDatabasePath);
+            Assert.True(File.Exists(databasePath));
+            using (var connection = SqliteConnectionFactory.Open(databasePath, pooling: false))
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT name FROM schema_migrations WHERE version = 1";
+                Assert.Equal("create_result_history", command.ExecuteScalar());
+            }
 
             Assert.Contains("Valid title", html, StringComparison.Ordinal);
             Assert.Contains("Safe overview", html, StringComparison.Ordinal);
