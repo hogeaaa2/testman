@@ -1,6 +1,7 @@
 using Testman.Core.Commands;
 using Testman.Core.Persistence;
 using Testman.Web.Presentation;
+using Microsoft.Data.Sqlite;
 
 var workingDirectory = Environment.CurrentDirectory;
 var startup = ServeStartup.Prepare(args, workingDirectory);
@@ -10,8 +11,20 @@ if (!startup.CanStart)
     return 1;
 }
 
-var databasePath = Path.GetFullPath(startup.Command!.DatabasePath, workingDirectory);
-DatabaseMigrationRunner.Apply(databasePath);
+try
+{
+    var databasePath = Path.GetFullPath(startup.Command!.DatabasePath, workingDirectory);
+    DatabaseMigrationRunner.Apply(databasePath);
+}
+catch (Exception exception) when (exception is ArgumentException
+    or NotSupportedException
+    or IOException
+    or UnauthorizedAccessException
+    or SqliteException)
+{
+    Console.Error.WriteLine($"Database could not be initialized: {exception.Message}");
+    return 1;
+}
 
 var builder = WebApplication.CreateBuilder([]);
 builder.Configuration.Sources.Clear();

@@ -35,6 +35,23 @@ public sealed class CliWebHostTests : IDisposable
     }
 
     [Fact]
+    public async Task Database_initialization_failure_exits_with_an_error_without_starting_the_server()
+    {
+        WriteFile("valid.md", ValidSpecification("Valid title"));
+        var databaseDirectory = Path.Combine(directory, "database-as-directory");
+        Directory.CreateDirectory(databaseDirectory);
+        using var process = StartProcess(
+            ["serve", "--specs", "valid.md", "--db", databaseDirectory, "--port", FindAvailablePort().ToString()]);
+
+        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        var error = process.StandardError.ReadToEnd();
+
+        Assert.Equal(1, process.ExitCode);
+        Assert.Contains("Database could not be initialized", error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unhandled exception", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Home_page_displays_valid_titles_and_diagnostics_from_the_selected_path()
     {
         WriteFile("valid.md", ValidSpecification("Valid title"));
