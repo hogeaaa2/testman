@@ -77,7 +77,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
             "Latest tester",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.Pass, "latest")]));
 
-        var latest = store.ReadLatest(specification, "TC-1");
+        var latest = store.ReadLatest(specification.Identity, "TC-1");
 
         Assert.NotNull(latest);
         Assert.Equal(TestResultOutcome.Pass, latest.Outcome);
@@ -96,7 +96,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
             "Tester",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.Pass, null)]));
 
-        Assert.Null(store.ReadLatest(specification, "TC-2"));
+        Assert.Null(store.ReadLatest(specification.Identity, "TC-2"));
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
             "Second",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.NotApplicable, "later")]));
 
-        var history = store.ReadHistory(specification, "TC-1");
+        var history = store.ReadHistory(specification.Identity, "TC-1");
 
         Assert.Collection(
             history,
@@ -129,6 +129,24 @@ public sealed class ResultHistoryStoreTests : IDisposable
                 Assert.Equal("First", first.ExecutedBy);
                 Assert.Null(first.Comment);
             });
+    }
+
+    [Fact]
+    public void ReadHistory_remains_available_when_the_specification_has_uncommitted_changes()
+    {
+        var store = new ResultHistoryStore(databasePath);
+        var committed = GitSpecificationReference.Resolve(specificationPath);
+        store.Append(new ResultSubmission(
+            DateTimeOffset.UtcNow,
+            "Tester",
+            [new TestResultInput(committed, "TC-1", TestResultOutcome.Pass, null)]));
+        File.AppendAllText(specificationPath, "\nchanged");
+
+        var currentIdentity = GitSpecificationIdentity.Resolve(specificationPath);
+        var history = store.ReadHistory(currentIdentity, "TC-1");
+
+        Assert.Single(history);
+        Assert.Equal(TestResultOutcome.Pass, history[0].Outcome);
     }
 
     [Fact]

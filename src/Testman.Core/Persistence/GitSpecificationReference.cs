@@ -5,64 +5,39 @@ namespace Testman.Core.Persistence;
 public sealed class GitSpecificationReference
 {
     private GitSpecificationReference(
-        string repositoryRoot,
-        string sourceFile,
+        GitSpecificationIdentity identity,
         string specificationRevision)
     {
-        RepositoryRoot = repositoryRoot;
-        SourceFile = sourceFile;
+        Identity = identity;
         SpecificationRevision = specificationRevision;
     }
 
-    public string RepositoryRoot { get; }
+    public GitSpecificationIdentity Identity { get; }
 
-    public string SourceFile { get; }
+    public string RepositoryRoot => Identity.RepositoryRoot;
+
+    public string SourceFile => Identity.SourceFile;
 
     public string SpecificationRevision { get; }
 
     public static GitSpecificationReference Resolve(string specificationPath)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(specificationPath);
-
-        var fullPath = Path.GetFullPath(specificationPath);
-        if (!File.Exists(fullPath))
-        {
-            throw new InvalidOperationException("The specification file does not exist.");
-        }
-
-        var containingDirectory = Path.GetDirectoryName(fullPath)!;
-        var rootResult = RunGit(containingDirectory, "rev-parse", "--show-toplevel");
-        if (rootResult.ExitCode != 0)
-        {
-            throw new InvalidOperationException("The specification file is not in a Git repository.");
-        }
-
-        var repositoryRoot = Path.GetFullPath(rootResult.Output.Trim());
-        var relativePath = Path.GetRelativePath(repositoryRoot, fullPath);
-        if (Path.IsPathRooted(relativePath)
-            || relativePath.Equals("..", StringComparison.Ordinal)
-            || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("The specification file is outside the Git repository.");
-        }
-
-        var sourceFile = relativePath.Replace('\\', '/');
+        var identity = GitSpecificationIdentity.Resolve(specificationPath);
         RequireSuccess(
-            RunGit(repositoryRoot, "ls-files", "--error-unmatch", "--", sourceFile),
+            RunGit(identity.RepositoryRoot, "ls-files", "--error-unmatch", "--", identity.SourceFile),
             "The specification file is not tracked by Git.");
         RequireSuccess(
-            RunGit(repositoryRoot, "diff", "--quiet", "HEAD", "--", sourceFile),
+            RunGit(identity.RepositoryRoot, "diff", "--quiet", "HEAD", "--", identity.SourceFile),
             "The specification file has uncommitted working-tree changes.");
         RequireSuccess(
-            RunGit(repositoryRoot, "diff", "--cached", "--quiet", "HEAD", "--", sourceFile),
+            RunGit(identity.RepositoryRoot, "diff", "--cached", "--quiet", "HEAD", "--", identity.SourceFile),
             "The specification file has uncommitted index changes.");
 
-        var revisionResult = RunGit(repositoryRoot, "rev-parse", "HEAD");
+        var revisionResult = RunGit(identity.RepositoryRoot, "rev-parse", "HEAD");
         RequireSuccess(revisionResult, "The Git HEAD revision could not be resolved.");
 
         return new GitSpecificationReference(
-            repositoryRoot,
-            sourceFile,
+            identity,
             revisionResult.Output.Trim());
     }
 
@@ -106,4 +81,69 @@ public sealed class GitSpecificationReference
     }
 
     private sealed record GitResult(int ExitCode, string Output, string Error);
+}
+
+public sealed class GitSpecificationIdentity
+{
+    private GitSpecificationIdentity(string repositoryRoot, string sourceFile)
+    {
+        RepositoryRoot = repositoryRoot;
+        SourceFile = sourceFile;
+    }
+
+    public string RepositoryRoot { get; }
+
+    public string SourceFile { get; }
+
+    public static GitSpecificationIdentity Resolve(string specificationPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(specificationPath);
+
+        var fullPath = Path.GetFullPath(specificationPath);
+        if (!File.Exists(fullPath))
+        {
+            throw new InvalidOperationException("The specification file does not exist.");
+        }
+
+        var startInfo = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = Path.GetDirectoryName(fullPath)!,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add("rev-parse");
+        startInfo.ArgumentList.Add("--show-toplevel");
+
+        string repositoryRoot;
+        try
+        {
+            using var process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Git could not be started.");
+            var output = process.StandardOutput.ReadToEnd();
+            process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException("The specification file is not in a Git repository.");
+            }
+
+            repositoryRoot = Path.GetFullPath(output.Trim());
+        }
+        catch (System.ComponentModel.Win32Exception exception)
+        {
+            throw new InvalidOperationException("Git could not be started.", exception);
+        }
+
+        var relativePath = Path.GetRelativePath(repositoryRoot, fullPath);
+        if (Path.IsPathRooted(relativePath)
+            || relativePath.Equals("..", StringComparison.Ordinal)
+            || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The specification file is outside the Git repository.");
+        }
+
+        return new GitSpecificationIdentity(repositoryRoot, relativePath.Replace('\\', '/'));
+    }
 }

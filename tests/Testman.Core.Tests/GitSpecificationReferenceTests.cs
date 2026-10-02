@@ -40,6 +40,18 @@ public sealed class GitSpecificationReferenceTests : IDisposable
     }
 
     [Fact]
+    public void Identity_resolves_an_untracked_file_for_read_only_use()
+    {
+        var untracked = Path.Combine(repository, "specs", "untracked.md");
+        File.WriteAllText(untracked, "# Untracked");
+
+        var identity = GitSpecificationIdentity.Resolve(untracked);
+
+        Assert.Equal(Path.GetFullPath(repository), identity.RepositoryRoot);
+        Assert.Equal("specs/untracked.md", identity.SourceFile);
+    }
+
+    [Fact]
     public void Resolve_rejects_unstaged_changes_to_the_specification()
     {
         File.AppendAllText(specificationPath, "\nchanged");

@@ -71,21 +71,21 @@ public sealed class ResultHistoryStore(string databasePath)
     }
 
     public TestResultRecord? ReadLatest(
-        GitSpecificationReference specification,
+        GitSpecificationIdentity specification,
         string testCaseId)
     {
         return Read(specification, testCaseId, latestOnly: true).SingleOrDefault();
     }
 
     public IReadOnlyList<TestResultRecord> ReadHistory(
-        GitSpecificationReference specification,
+        GitSpecificationIdentity specification,
         string testCaseId)
     {
         return Read(specification, testCaseId, latestOnly: false);
     }
 
     private IReadOnlyList<TestResultRecord> Read(
-        GitSpecificationReference specification,
+        GitSpecificationIdentity specification,
         string testCaseId,
         bool latestOnly)
     {
