@@ -56,6 +56,11 @@ public sealed class CliWebHostTests : IDisposable
     {
         WriteFile("valid.md", ValidSpecification("Valid title"));
         WriteFile("invalid.md", "Testman-Format-Version: 1\n\n# Invalid title");
+        Git("init");
+        Git("config", "user.name", "Test User");
+        Git("config", "user.email", "test@example.invalid");
+        Git("add", "valid.md", "invalid.md");
+        Git("commit", "-m", "Add specifications");
         var port = FindAvailablePort();
         var ignoredEnvironmentPort = FindAvailablePort();
         var relativeDatabasePath = Path.Combine("data", "results.db");
@@ -95,6 +100,17 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("/lib/bootstrap/dist/css/bootstrap.min.", html, StringComparison.Ordinal);
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
 
+            var specification = GitSpecificationReference.Resolve(Path.Combine(directory, "valid.md"));
+            var store = new ResultHistoryStore(databasePath);
+            store.Append(new ResultSubmission(
+                new DateTimeOffset(2026, 10, 2, 3, 4, 5, TimeSpan.Zero),
+                "<script>tester</script>",
+                [new TestResultInput(
+                    specification,
+                    "TC-1",
+                    TestResultOutcome.Pass,
+                    "<img src=x onerror=alert('history')>")]));
+
             WriteFile("valid.md", ValidSpecification("Updated title"));
             var updatedHtml = await client.GetStringAsync("/");
 
@@ -109,7 +125,12 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Case step", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
-            Assert.Contains("Not Tested", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Pass", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("History (1)", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("&lt;script&gt;tester&lt;/script&gt;", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("&lt;img src=x onerror=alert", verificationHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("<script>tester</script>", verificationHtml, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<img src=x", verificationHtml, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Safe overview", verificationHtml, StringComparison.Ordinal);
         }
         finally
@@ -119,7 +140,73 @@ public sealed class CliWebHostTests : IDisposable
         }
     }
 
-    public void Dispose() => Directory.Delete(directory, recursive: true);
+    [Fact]
+    public async Task Home_page_keeps_a_non_git_specification_visible_as_not_tested()
+    {
+        WriteFile("valid.md", ValidSpecification("Non Git title"));
+        var port = FindAvailablePort();
+        using var process = StartProcess(
+            ["serve", "--specs", "valid.md", "--db", "results.db", "--port", port.ToString()]);
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+            var html = await GetWhenReady(client, process, "/?mode=verification");
+
+            Assert.Contains("Non Git title", html, StringComparison.Ordinal);
+            Assert.Contains("Not Tested", html, StringComparison.Ordinal);
+        }
+        finally
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Runtime_database_read_failure_returns_an_error_instead_of_not_tested()
+    {
+        WriteFile("valid.md", ValidSpecification("Database failure"));
+        Git("init");
+        Git("config", "user.name", "Test User");
+        Git("config", "user.email", "test@example.invalid");
+        Git("add", "valid.md");
+        Git("commit", "-m", "Add specification");
+        var databasePath = Path.Combine(directory, "results.db");
+        var port = FindAvailablePort();
+        using var process = StartProcess(
+            ["serve", "--specs", "valid.md", "--db", databasePath, "--port", port.ToString()]);
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+            await GetWhenReady(client, process);
+            File.Move(databasePath, $"{databasePath}.moved");
+            Directory.CreateDirectory(databasePath);
+
+            using var response = await client.GetAsync("/?mode=verification");
+            var html = await response.Content.ReadAsStringAsync();
+
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.DoesNotContain("Not Tested", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("Microsoft.Data.Sqlite", html, StringComparison.Ordinal);
+        }
+        finally
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+        {
+            entry.Attributes = FileAttributes.Normal;
+        }
+
+        Directory.Delete(directory, recursive: true);
+    }
 
     private Process StartProcess(
         IReadOnlyList<string> arguments,
@@ -151,7 +238,7 @@ public sealed class CliWebHostTests : IDisposable
             ?? throw new InvalidOperationException("Could not start the Testman Web process.");
     }
 
-    private static async Task<string> GetWhenReady(HttpClient client, Process process)
+    private static async Task<string> GetWhenReady(HttpClient client, Process process, string path = "/")
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(15);
         Exception? lastException = null;
@@ -165,7 +252,7 @@ public sealed class CliWebHostTests : IDisposable
 
             try
             {
-                return await client.GetStringAsync("/");
+                return await client.GetStringAsync(path);
             }
             catch (HttpRequestException exception)
             {
@@ -188,6 +275,23 @@ public sealed class CliWebHostTests : IDisposable
 
     private void WriteFile(string relativePath, string content) =>
         File.WriteAllText(Path.Combine(directory, relativePath), content, new UTF8Encoding(false));
+
+    private void Git(params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = directory,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+        foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(startInfo)!;
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.True(process.ExitCode == 0, error);
+    }
 
     private static string ValidSpecification(string title) => $$"""
         Testman-Format-Version: 1
