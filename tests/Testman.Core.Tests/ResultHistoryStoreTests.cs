@@ -64,6 +64,74 @@ public sealed class ResultHistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public void ReadLatest_uses_the_largest_result_id_not_the_execution_time()
+    {
+        var store = new ResultHistoryStore(databasePath);
+        var specification = GitSpecificationReference.Resolve(specificationPath);
+        store.Append(new ResultSubmission(
+            new DateTimeOffset(2026, 10, 2, 12, 0, 0, TimeSpan.Zero),
+            "First tester",
+            [new TestResultInput(specification, "TC-1", TestResultOutcome.Fail, "first")]));
+        store.Append(new ResultSubmission(
+            new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero),
+            "Latest tester",
+            [new TestResultInput(specification, "TC-1", TestResultOutcome.Pass, "latest")]));
+
+        var latest = store.ReadLatest(specification, "TC-1");
+
+        Assert.NotNull(latest);
+        Assert.Equal(TestResultOutcome.Pass, latest.Outcome);
+        Assert.Equal("latest", latest.Comment);
+        Assert.Equal("Latest tester", latest.ExecutedBy);
+        Assert.Equal(new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero), latest.ExecutedAtUtc);
+    }
+
+    [Fact]
+    public void ReadLatest_returns_null_when_the_test_case_has_no_history()
+    {
+        var store = new ResultHistoryStore(databasePath);
+        var specification = GitSpecificationReference.Resolve(specificationPath);
+        store.Append(new ResultSubmission(
+            DateTimeOffset.UtcNow,
+            "Tester",
+            [new TestResultInput(specification, "TC-1", TestResultOutcome.Pass, null)]));
+
+        Assert.Null(store.ReadLatest(specification, "TC-2"));
+    }
+
+    [Fact]
+    public void ReadHistory_returns_all_results_newest_first()
+    {
+        var store = new ResultHistoryStore(databasePath);
+        var specification = GitSpecificationReference.Resolve(specificationPath);
+        store.Append(new ResultSubmission(
+            new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
+            "First",
+            [new TestResultInput(specification, "TC-1", TestResultOutcome.Blocked, null)]));
+        store.Append(new ResultSubmission(
+            new DateTimeOffset(2026, 10, 2, 0, 0, 0, TimeSpan.Zero),
+            "Second",
+            [new TestResultInput(specification, "TC-1", TestResultOutcome.NotApplicable, "later")]));
+
+        var history = store.ReadHistory(specification, "TC-1");
+
+        Assert.Collection(
+            history,
+            latest =>
+            {
+                Assert.Equal(TestResultOutcome.NotApplicable, latest.Outcome);
+                Assert.Equal("Second", latest.ExecutedBy);
+                Assert.Equal("later", latest.Comment);
+            },
+            first =>
+            {
+                Assert.Equal(TestResultOutcome.Blocked, first.Outcome);
+                Assert.Equal("First", first.ExecutedBy);
+                Assert.Null(first.Comment);
+            });
+    }
+
+    [Fact]
     public void Append_rejects_an_invalid_batch_without_saving_any_part_of_it()
     {
         var store = new ResultHistoryStore(databasePath);

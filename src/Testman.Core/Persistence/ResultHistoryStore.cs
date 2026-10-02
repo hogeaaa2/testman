@@ -23,6 +23,16 @@ public sealed record ResultSubmission(
     string ExecutedBy,
     IReadOnlyList<TestResultInput> Results);
 
+public sealed record TestResultRecord(
+    long Id,
+    long SubmissionId,
+    DateTimeOffset ExecutedAtUtc,
+    string ExecutedBy,
+    string TestCaseId,
+    TestResultOutcome Outcome,
+    string? Comment,
+    string SpecificationRevision);
+
 public sealed class ResultHistoryStore(string databasePath)
 {
     private readonly string databasePath = Path.GetFullPath(
@@ -58,6 +68,76 @@ public sealed class ResultHistoryStore(string databasePath)
 
         transaction.Commit();
         return submissionId;
+    }
+
+    public TestResultRecord? ReadLatest(
+        GitSpecificationReference specification,
+        string testCaseId)
+    {
+        return Read(specification, testCaseId, latestOnly: true).SingleOrDefault();
+    }
+
+    public IReadOnlyList<TestResultRecord> ReadHistory(
+        GitSpecificationReference specification,
+        string testCaseId)
+    {
+        return Read(specification, testCaseId, latestOnly: false);
+    }
+
+    private IReadOnlyList<TestResultRecord> Read(
+        GitSpecificationReference specification,
+        string testCaseId,
+        bool latestOnly)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+        if (!TestId.TryParse(testCaseId, out var parsedTestId))
+        {
+            throw new ArgumentException($"Invalid Test ID: {testCaseId}", nameof(testCaseId));
+        }
+
+        using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
+        using var command = connection.CreateCommand();
+        command.CommandText = $$"""
+            SELECT
+                result.id,
+                result.submission_id,
+                submission.executed_at_utc,
+                submission.executed_by,
+                result.test_case_id,
+                result.result,
+                result.comment,
+                result.specification_revision
+            FROM test_results AS result
+            INNER JOIN result_submissions AS submission ON submission.id = result.submission_id
+            WHERE result.repository_root = $repositoryRoot
+              AND result.source_file = $sourceFile
+              AND result.test_case_id = $testCaseId
+            ORDER BY result.id DESC
+            {{(latestOnly ? "LIMIT 1" : string.Empty)}}
+            """;
+        command.Parameters.AddWithValue("$repositoryRoot", specification.RepositoryRoot);
+        command.Parameters.AddWithValue("$sourceFile", specification.SourceFile);
+        command.Parameters.AddWithValue("$testCaseId", parsedTestId.Value);
+
+        using var reader = command.ExecuteReader();
+        var records = new List<TestResultRecord>();
+        while (reader.Read())
+        {
+            records.Add(new TestResultRecord(
+                reader.GetInt64(0),
+                reader.GetInt64(1),
+                DateTimeOffset.Parse(
+                    reader.GetString(2),
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal),
+                reader.GetString(3),
+                reader.GetString(4),
+                FromDatabaseValue(reader.GetString(5)),
+                reader.IsDBNull(6) ? null : reader.GetString(6),
+                reader.GetString(7)));
+        }
+
+        return records;
     }
 
     private static ValidatedResult Validate(TestResultInput result)
@@ -148,6 +228,15 @@ public sealed class ResultHistoryStore(string databasePath)
         TestResultOutcome.Blocked => "blocked",
         TestResultOutcome.NotApplicable => "not_applicable",
         _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
+    };
+
+    private static TestResultOutcome FromDatabaseValue(string outcome) => outcome switch
+    {
+        "pass" => TestResultOutcome.Pass,
+        "fail" => TestResultOutcome.Fail,
+        "blocked" => TestResultOutcome.Blocked,
+        "not_applicable" => TestResultOutcome.NotApplicable,
+        _ => throw new InvalidDataException($"Unknown stored test result: {outcome}"),
     };
 
     private sealed record ValidatedResult(
