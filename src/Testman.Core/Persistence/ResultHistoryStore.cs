@@ -13,12 +13,10 @@ public enum TestResultOutcome
 }
 
 public sealed record TestResultInput(
-    string RepositoryRoot,
-    string SourceFile,
+    GitSpecificationReference Specification,
     string TestCaseId,
     TestResultOutcome Outcome,
-    string? Comment,
-    string SpecificationRevision);
+    string? Comment);
 
 public sealed record ResultSubmission(
     DateTimeOffset ExecutedAt,
@@ -76,28 +74,15 @@ public sealed class ResultHistoryStore(string databasePath)
             throw new ArgumentException("Invalid test result outcome.", nameof(result));
         }
 
-        if (string.IsNullOrWhiteSpace(result.RepositoryRoot))
-        {
-            throw new ArgumentException("Repository root is required.", nameof(result));
-        }
-
-        if (string.IsNullOrWhiteSpace(result.SourceFile) || Path.IsPathRooted(result.SourceFile))
-        {
-            throw new ArgumentException("Source file must be a relative path.", nameof(result));
-        }
-
-        if (string.IsNullOrWhiteSpace(result.SpecificationRevision))
-        {
-            throw new ArgumentException("Specification revision is required.", nameof(result));
-        }
+        ArgumentNullException.ThrowIfNull(result.Specification);
 
         return new ValidatedResult(
-            Path.GetFullPath(result.RepositoryRoot),
-            result.SourceFile.Replace('\\', '/'),
+            result.Specification.RepositoryRoot,
+            result.Specification.SourceFile,
             testId.Value,
             ToDatabaseValue(result.Outcome),
             string.IsNullOrWhiteSpace(result.Comment) ? null : result.Comment,
-            result.SpecificationRevision);
+            result.Specification.SpecificationRevision);
     }
 
     private static long InsertSubmission(

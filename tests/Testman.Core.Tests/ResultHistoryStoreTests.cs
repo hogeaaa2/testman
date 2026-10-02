@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using Testman.Core.Persistence;
 
@@ -7,11 +8,20 @@ public sealed class ResultHistoryStoreTests : IDisposable
 {
     private readonly string directory = Path.Combine(Path.GetTempPath(), $"testman-results-{Guid.NewGuid():N}");
     private readonly string databasePath;
+    private readonly string specificationPath;
 
     public ResultHistoryStoreTests()
     {
         Directory.CreateDirectory(directory);
         databasePath = Path.Combine(directory, "testman.db");
+        specificationPath = Path.Combine(directory, "specs", "example.md");
+        Directory.CreateDirectory(Path.GetDirectoryName(specificationPath)!);
+        File.WriteAllText(specificationPath, "# Example");
+        Git("init");
+        Git("config", "user.name", "Test User");
+        Git("config", "user.email", "test@example.invalid");
+        Git("add", "specs/example.md");
+        Git("commit", "-m", "Add specification");
         DatabaseMigrationRunner.Apply(databasePath);
     }
 
@@ -70,6 +80,35 @@ public sealed class ResultHistoryStoreTests : IDisposable
     }
 
     [Fact]
+    public void Append_rolls_back_the_submission_when_a_later_database_insert_fails()
+    {
+        using (var connection = SqliteConnectionFactory.Open(databasePath, pooling: false))
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TRIGGER reject_second_result
+                BEFORE INSERT ON test_results
+                WHEN NEW.test_case_id = 'TC-2'
+                BEGIN
+                    SELECT RAISE(ABORT, 'simulated failure');
+                END;
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        var store = new ResultHistoryStore(databasePath);
+
+        Assert.Throws<SqliteException>(() => store.Append(new ResultSubmission(
+            DateTimeOffset.UtcNow,
+            "Tester",
+            [Result("TC-1", TestResultOutcome.Pass, null), Result("TC-2", TestResultOutcome.Fail, null)])));
+
+        using var verified = SqliteConnectionFactory.Open(databasePath, pooling: false);
+        Assert.Equal(0L, ExecuteScalar<long>(verified, "SELECT COUNT(*) FROM result_submissions"));
+        Assert.Equal(0L, ExecuteScalar<long>(verified, "SELECT COUNT(*) FROM test_results"));
+    }
+
+    [Fact]
     public void Append_requires_an_executor_and_at_least_one_result()
     {
         var store = new ResultHistoryStore(databasePath);
@@ -80,10 +119,27 @@ public sealed class ResultHistoryStoreTests : IDisposable
             new ResultSubmission(DateTimeOffset.UtcNow, "Tester", [])));
     }
 
-    public void Dispose() => Directory.Delete(directory, recursive: true);
+    public void Dispose() => DeleteDirectory(directory);
 
-    private static TestResultInput Result(string testCaseId, TestResultOutcome outcome, string? comment) =>
-        new("D:/repo", "specs/example.md", testCaseId, outcome, comment, "0123456789abcdef");
+    private TestResultInput Result(string testCaseId, TestResultOutcome outcome, string? comment) =>
+        new(GitSpecificationReference.Resolve(specificationPath), testCaseId, outcome, comment);
+
+    private void Git(params string[] arguments)
+    {
+        var startInfo = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = directory,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        };
+        foreach (var argument in arguments) startInfo.ArgumentList.Add(argument);
+
+        using var process = Process.Start(startInfo)!;
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        Assert.True(process.ExitCode == 0, error);
+    }
 
     private static IReadOnlyList<string> ReadStrings(SqliteConnection connection, string sql)
     {
@@ -100,5 +156,15 @@ public sealed class ResultHistoryStoreTests : IDisposable
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         return (T)Convert.ChangeType(command.ExecuteScalar()!, typeof(T));
+    }
+
+    private static void DeleteDirectory(string path)
+    {
+        foreach (var entry in new DirectoryInfo(path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+        {
+            entry.Attributes = FileAttributes.Normal;
+        }
+
+        Directory.Delete(path, recursive: true);
     }
 }
