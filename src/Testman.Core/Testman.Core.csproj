@@ -9,6 +9,11 @@
   <ItemGroup>
     <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\migrations\*.sql" Link="Migrations\%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
