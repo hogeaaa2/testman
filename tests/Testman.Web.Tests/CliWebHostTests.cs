@@ -276,12 +276,16 @@ public sealed class CliWebHostTests : IDisposable
             using var confirmationResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
             var confirmationHtml = await confirmationResponse.Content.ReadAsStringAsync();
             Assert.Contains("Not all test cases have a result", confirmationHtml, StringComparison.Ordinal);
+            AssertFeedbackNearSubmission(
+                confirmationHtml,
+                "Not all test cases have a result");
             Assert.Equal(0L, ResultCount(databasePath));
 
             values = SubmissionValues(confirmationHtml);
             using var savedResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
             var savedHtml = await savedResponse.Content.ReadAsStringAsync();
             Assert.Contains("Results saved.", savedHtml, StringComparison.Ordinal);
+            AssertFeedbackNearSubmission(savedHtml, "Results saved.");
             Assert.Contains("History (1)", savedHtml, StringComparison.Ordinal);
             Assert.Equal(1L, ResultCount(databasePath));
         }
@@ -432,6 +436,13 @@ public sealed class CliWebHostTests : IDisposable
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM test_results";
         return (long)command.ExecuteScalar()!;
+    }
+
+    private static void AssertFeedbackNearSubmission(string html, string message)
+    {
+        var feedbackIndex = html.IndexOf(message, StringComparison.Ordinal);
+        Assert.True(feedbackIndex > html.LastIndexOf("Optional comment", StringComparison.Ordinal));
+        Assert.True(feedbackIndex < html.IndexOf("Executed by", StringComparison.Ordinal));
     }
 
     private static string ValidSpecification(string title) => $$"""
