@@ -99,7 +99,11 @@ public sealed class CliWebHostTests : IDisposable
             Assert.DoesNotContain("TC-1", html, StringComparison.Ordinal);
             Assert.Contains("Test patterns", html, StringComparison.Ordinal);
             Assert.Contains("Verification", html, StringComparison.Ordinal);
-            Assert.Contains("<details class=\"card border-0 shadow-sm mt-4 specification-card\" open>", html, StringComparison.Ordinal);
+            Assert.Contains("<details class=\"card border-0 shadow-sm mt-4 specification-card\"", html, StringComparison.Ordinal);
+            Assert.Contains(
+                $"data-specification-path=\"{WebUtility.HtmlEncode(Path.Combine(directory, "valid.md"))}\"",
+                html,
+                StringComparison.Ordinal);
             Assert.Contains("<summary class=\"card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2\"", html, StringComparison.Ordinal);
             Assert.Contains("class=\"specification-toggle\"", html, StringComparison.Ordinal);
             Assert.Contains("Current test status", html, StringComparison.Ordinal);
@@ -107,6 +111,12 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Not Tested 1", html, StringComparison.Ordinal);
             Assert.Contains("/lib/bootstrap/dist/css/bootstrap.min.", html, StringComparison.Ordinal);
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
+
+            var siteScript = await client.GetStringAsync("/js/site.js");
+            Assert.Contains("sessionStorage.getItem", siteScript, StringComparison.Ordinal);
+            Assert.Contains("sessionStorage.setItem", siteScript, StringComparison.Ordinal);
+            Assert.Contains("addEventListener(\"toggle\"", siteScript, StringComparison.Ordinal);
+            Assert.Contains("data-specification-path", siteScript, StringComparison.Ordinal);
 
             var specification = GitSpecificationReference.Resolve(Path.Combine(directory, "valid.md"));
             var store = new ResultHistoryStore(databasePath);

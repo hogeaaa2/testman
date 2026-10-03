@@ -99,7 +99,9 @@
 <input asp-for="ConfirmPartial" type="hidden" />
 @foreach (var file in Model.PageContent.Files)
 {
-    <details class="card border-0 shadow-sm mt-4 specification-card" open>
+    <details class="card border-0 shadow-sm mt-4 specification-card"
+             data-specification-path="@file.SourcePath"
+             open>
         <summary class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2">
             <span>
                 @file.SourcePath
