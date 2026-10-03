@@ -41,6 +41,27 @@ public sealed class GitSpecificationReference
             revisionResult.Output.Trim());
     }
 
+    public static string ResolveLastCommittedRevision(string specificationPath)
+    {
+        var identity = GitSpecificationIdentity.Resolve(specificationPath);
+        var revisionResult = RunGit(
+            identity.RepositoryRoot,
+            "log",
+            "-1",
+            "--format=%H",
+            "--",
+            identity.SourceFile);
+        RequireSuccess(revisionResult, "The specification file revision could not be resolved.");
+
+        var revision = revisionResult.Output.Trim();
+        if (string.IsNullOrEmpty(revision))
+        {
+            throw new InvalidOperationException("The specification file has no committed revision.");
+        }
+
+        return revision;
+    }
+
     private static void RequireSuccess(GitResult result, string message)
     {
         if (result.ExitCode != 0)

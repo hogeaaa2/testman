@@ -68,6 +68,41 @@ public sealed class GitSpecificationReferenceTests : IDisposable
         Assert.Throws<InvalidOperationException>(() => GitSpecificationReference.Resolve(specificationPath));
     }
 
+    [Fact]
+    public void ResolveLastCommittedRevision_returns_the_latest_commit_that_changed_the_file()
+    {
+        var specificationRevision = GitOutput("log", "-1", "--format=%H", "--", "specs/example.md");
+        File.WriteAllText(Path.Combine(repository, "other.txt"), "other");
+        Git("add", "other.txt");
+        Git("commit", "-m", "Change another file");
+
+        var revision = GitSpecificationReference.ResolveLastCommittedRevision(specificationPath);
+
+        Assert.Equal(specificationRevision, revision);
+        Assert.NotEqual(GitOutput("rev-parse", "HEAD"), revision);
+    }
+
+    [Fact]
+    public void ResolveLastCommittedRevision_returns_the_committed_revision_when_the_file_is_dirty()
+    {
+        var specificationRevision = GitOutput("log", "-1", "--format=%H", "--", "specs/example.md");
+        File.AppendAllText(specificationPath, "\nchanged");
+
+        Assert.Equal(
+            specificationRevision,
+            GitSpecificationReference.ResolveLastCommittedRevision(specificationPath));
+    }
+
+    [Fact]
+    public void ResolveLastCommittedRevision_rejects_an_untracked_file()
+    {
+        var untracked = Path.Combine(repository, "specs", "untracked.md");
+        File.WriteAllText(untracked, "# Untracked");
+
+        Assert.Throws<InvalidOperationException>(() =>
+            GitSpecificationReference.ResolveLastCommittedRevision(untracked));
+    }
+
     public void Dispose()
     {
         foreach (var entry in new DirectoryInfo(repository).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))

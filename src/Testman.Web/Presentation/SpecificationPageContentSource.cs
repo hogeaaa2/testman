@@ -36,7 +36,7 @@ public sealed class SpecificationPageContentSource(
     {
         try
         {
-            return GitSpecificationReference.Resolve(sourcePath).SpecificationRevision;
+            return GitSpecificationReference.ResolveLastCommittedRevision(sourcePath);
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {
