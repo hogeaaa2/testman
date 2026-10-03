@@ -148,7 +148,7 @@
                                     {
                                         <tr>
                                             <th scope="row">@testCase.Id</th>
-                                            <td>@Html.Raw(testCase.StepsHtml)</td>
+                                            <td class="markdown-content test-steps">@Html.Raw(testCase.StepsHtml)</td>
                                             <td>@Html.Raw(testCase.ExpectedResultHtml)</td>
                                             <td>
                                                 @if (testCase.PreviousResult is null)

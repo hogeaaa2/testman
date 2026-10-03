@@ -130,6 +130,7 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Verification precondition", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Shared step", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Case step", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("class=\"markdown-content test-steps\"", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Pass", verificationHtml, StringComparison.Ordinal);
