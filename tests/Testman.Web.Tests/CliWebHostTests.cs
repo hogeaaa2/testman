@@ -271,9 +271,11 @@ public sealed class CliWebHostTests : IDisposable
         {
             using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
             var page = await GetWhenReady(client, process, "/?mode=verification");
+            var submissionAction = SubmissionAction(page);
+            Assert.EndsWith("#result-submission", submissionAction, StringComparison.Ordinal);
             var values = SubmissionValues(page);
 
-            using var confirmationResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
+            using var confirmationResponse = await client.PostAsync(submissionAction, new FormUrlEncodedContent(values));
             var confirmationHtml = await confirmationResponse.Content.ReadAsStringAsync();
             Assert.Contains("Not all test cases have a result", confirmationHtml, StringComparison.Ordinal);
             AssertFeedbackNearSubmission(
@@ -282,10 +284,12 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Equal(0L, ResultCount(databasePath));
 
             values = SubmissionValues(confirmationHtml);
-            using var savedResponse = await client.PostAsync("/", new FormUrlEncodedContent(values));
+            submissionAction = SubmissionAction(confirmationHtml);
+            using var savedResponse = await client.PostAsync(submissionAction, new FormUrlEncodedContent(values));
             var savedHtml = await savedResponse.Content.ReadAsStringAsync();
             Assert.Contains("Results saved.", savedHtml, StringComparison.Ordinal);
             AssertFeedbackNearSubmission(savedHtml, "Results saved.");
+            Assert.Equal("#result-submission", savedResponse.RequestMessage?.RequestUri?.Fragment);
             Assert.Contains("History (1)", savedHtml, StringComparison.Ordinal);
             Assert.Equal(1L, ResultCount(databasePath));
         }
@@ -428,6 +432,16 @@ public sealed class CliWebHostTests : IDisposable
             ["ResultCases[1].Outcome"] = string.Empty,
             ["ResultCases[1].Comment"] = string.Empty,
         };
+    }
+
+    private static string SubmissionAction(string html)
+    {
+        var action = Regex.Match(
+            html,
+            "<form[^>]*action=\"([^\"]+)\"[^>]*>",
+            RegexOptions.CultureInvariant).Groups[1].Value;
+        Assert.NotEmpty(action);
+        return WebUtility.HtmlDecode(action);
     }
 
     private static long ResultCount(string databasePath)

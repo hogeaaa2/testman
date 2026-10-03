@@ -95,7 +95,7 @@
 }
 
 @{ var resultIndex = 0; }
-<form method="post">
+<form method="post" asp-route-mode="verification" asp-fragment="result-submission">
 <input asp-for="ConfirmPartial" type="hidden" />
 @foreach (var file in Model.PageContent.Files)
 {
@@ -276,7 +276,7 @@
 }
 @if (Model.IsVerificationMode)
 {
-    <section class="card border-0 shadow-sm mt-4">
+    <section class="card border-0 shadow-sm mt-4" id="result-submission">
         <div class="card-body p-4">
             @if (!string.IsNullOrEmpty(Model.SuccessMessage))
             {

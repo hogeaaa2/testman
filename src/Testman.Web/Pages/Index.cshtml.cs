@@ -55,7 +55,11 @@ public sealed class IndexModel(
             if (response.Status == ResultSubmissionStatus.Saved)
             {
                 SuccessMessage = response.Message;
-                return RedirectToPage(new { mode = "verification" });
+                return RedirectToPage(
+                    pageName: null,
+                    pageHandler: null,
+                    routeValues: new { mode = "verification" },
+                    fragment: "result-submission");
             }
 
             if (response.Status == ResultSubmissionStatus.NeedsPartialConfirmation)
