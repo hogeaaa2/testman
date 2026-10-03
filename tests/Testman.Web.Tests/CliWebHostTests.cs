@@ -94,6 +94,8 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Middle", html, StringComparison.Ordinal);
             Assert.Contains("Minor", html, StringComparison.Ordinal);
             Assert.Contains("invalid.md", html, StringComparison.Ordinal);
+            Assert.Contains("Specification diagnostics", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"alert alert-warning border shadow-sm\"", html, StringComparison.Ordinal);
             Assert.Matches("valid\\.md\\s+\\([0-9a-f]{40}\\)", html);
             Assert.Contains("Required section", html, StringComparison.Ordinal);
             Assert.DoesNotContain("TC-1", html, StringComparison.Ordinal);
@@ -217,6 +219,9 @@ public sealed class CliWebHostTests : IDisposable
             var html = await GetWhenReady(client, process, "/?mode=verification");
 
             Assert.Contains("Non Git title", html, StringComparison.Ordinal);
+            Assert.Contains("Specification diagnostics", html, StringComparison.Ordinal);
+            Assert.Contains("No parsing diagnostics.", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"alert alert-light border shadow-sm\"", html, StringComparison.Ordinal);
             Assert.Contains("Not Tested", html, StringComparison.Ordinal);
             Assert.DoesNotContain("Current test status", html, StringComparison.Ordinal);
         }
