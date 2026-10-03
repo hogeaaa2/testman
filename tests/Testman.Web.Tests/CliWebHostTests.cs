@@ -136,6 +136,12 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("<li>Case step<br>2. Follow-up step</li>", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
+            Assert.Matches(
+                "Result input</th>\\s*<th scope=\"col\">Optional comment</th>",
+                verificationHtml);
+            Assert.Matches(
+                "</select>\\s*</td>\\s*<td>\\s*<label[^>]+>Comment for TC-1</label>\\s*<textarea",
+                verificationHtml);
             Assert.Contains("Pass", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("History (1)", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Pass 1", verificationHtml, StringComparison.Ordinal);

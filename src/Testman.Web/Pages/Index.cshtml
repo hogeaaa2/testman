@@ -144,6 +144,7 @@
                                         <th scope="col">Expected result</th>
                                         <th scope="col">Previous result</th>
                                         <th scope="col">Result input</th>
+                                        <th scope="col">Optional comment</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -193,20 +194,29 @@
                                                     <input asp-for="ResultCases[resultIndex].SourcePath" type="hidden" />
                                                     <input asp-for="ResultCases[resultIndex].TestCaseId" type="hidden" />
                                                     <label class="visually-hidden" for="ResultCases_@(resultIndex)__Outcome">Result for @testCase.Id</label>
-                                                    <select asp-for="ResultCases[resultIndex].Outcome" class="form-select mb-2">
+                                                    <select asp-for="ResultCases[resultIndex].Outcome" class="form-select">
                                                         <option value="">Select result</option>
                                                         <option value="pass">Pass</option>
                                                         <option value="fail">Fail</option>
                                                         <option value="blocked">Blocked</option>
                                                         <option value="not_applicable">N/A</option>
                                                     </select>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-body-secondary">Registration unavailable</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (testCase.CanRegisterResult)
+                                                {
                                                     <label class="visually-hidden" for="ResultCases_@(resultIndex)__Comment">Comment for @testCase.Id</label>
                                                     <textarea asp-for="ResultCases[resultIndex].Comment" class="form-control" rows="2" placeholder="Optional comment"></textarea>
                                                     resultIndex++;
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-body-secondary">Registration unavailable</span>
+                                                    <span class="text-body-secondary">—</span>
                                                 }
                                             </td>
                                         </tr>
