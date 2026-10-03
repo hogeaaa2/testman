@@ -1,11 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { initializeSpecificationCardState } = require("../../src/Testman.Web/wwwroot/js/site.js");
+const { initializeDisclosureState } = require("../../src/Testman.Web/wwwroot/js/site.js");
 
-function card(path, open = true) {
+function disclosure(key, open = true) {
     const listeners = new Map();
     return {
-        dataset: { specificationPath: path },
+        dataset: { disclosureKey: key },
         open,
         addEventListener(name, listener) {
             listeners.set(name, listener);
@@ -19,39 +19,49 @@ function card(path, open = true) {
 function root(cards) {
     return {
         querySelectorAll(selector) {
-            assert.equal(selector, "details[data-specification-path]");
+            assert.equal(selector, "details[data-disclosure-key]");
             return cards;
         },
     };
 }
 
-test("restores and saves each specification card independently across page loads", () => {
-    const values = new Map([
-        ["testman:specification-open:C:/specs/one.md", "false"],
-        ["testman:specification-open:C:/specs/two.md", "true"],
-    ]);
+test("restores and saves the test list and each specification independently across page loads", () => {
+    const values = new Map();
     const storage = {
         getItem: (key) => values.get(key) ?? null,
         setItem: (key, value) => values.set(key, value),
     };
-    const firstLoad = [card("C:/specs/one.md"), card("C:/specs/two.md", false)];
+    const firstLoad = [
+        disclosure("test-list", false),
+        disclosure("specification:C:/specs/one.md"),
+        disclosure("specification:C:/specs/two.md", false),
+    ];
 
-    initializeSpecificationCardState(root(firstLoad), storage);
+    values.set("testman:disclosure-open:test-list", "true");
+    values.set("testman:disclosure-open:specification:C:/specs/one.md", "false");
+    values.set("testman:disclosure-open:specification:C:/specs/two.md", "true");
+    initializeDisclosureState(root(firstLoad), storage);
 
-    assert.equal(firstLoad[0].open, false);
-    assert.equal(firstLoad[1].open, true);
-    firstLoad[0].open = true;
-    firstLoad[0].toggle();
+    assert.equal(firstLoad[0].open, true);
+    assert.equal(firstLoad[1].open, false);
+    assert.equal(firstLoad[2].open, true);
+    firstLoad[1].open = true;
+    firstLoad[1].toggle();
 
-    const nextLoad = [card("C:/specs/one.md", false), card("C:/specs/two.md", false)];
-    initializeSpecificationCardState(root(nextLoad), storage);
+    const nextLoad = [
+        disclosure("test-list", false),
+        disclosure("specification:C:/specs/one.md", false),
+        disclosure("specification:C:/specs/two.md", false),
+    ];
+    initializeDisclosureState(root(nextLoad), storage);
 
     assert.equal(nextLoad[0].open, true);
     assert.equal(nextLoad[1].open, true);
+    assert.equal(nextLoad[2].open, true);
 });
 
 test("keeps cards usable when session storage is unavailable", () => {
-    const specification = card("C:/specs/one.md", false);
+    const specification = disclosure("specification:C:/specs/one.md", false);
     const unavailableStorage = {
         getItem() {
             throw new Error("unavailable");
@@ -61,7 +71,7 @@ test("keeps cards usable when session storage is unavailable", () => {
         },
     };
 
-    assert.doesNotThrow(() => initializeSpecificationCardState(root([specification]), unavailableStorage));
+    assert.doesNotThrow(() => initializeDisclosureState(root([specification]), unavailableStorage));
     assert.equal(specification.open, false);
     specification.open = true;
     assert.doesNotThrow(() => specification.toggle());

@@ -101,7 +101,7 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Verification", html, StringComparison.Ordinal);
             Assert.Contains("<details class=\"card border-0 shadow-sm mt-4 specification-card\"", html, StringComparison.Ordinal);
             Assert.Contains(
-                $"data-specification-path=\"{WebUtility.HtmlEncode(Path.Combine(directory, "valid.md"))}\"",
+                $"data-disclosure-key=\"specification:{WebUtility.HtmlEncode(Path.Combine(directory, "valid.md"))}\"",
                 html,
                 StringComparison.Ordinal);
             Assert.Contains("<summary class=\"card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2\"", html, StringComparison.Ordinal);
@@ -116,7 +116,7 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("storage?.getItem", siteScript, StringComparison.Ordinal);
             Assert.Contains("storage?.setItem", siteScript, StringComparison.Ordinal);
             Assert.Contains("addEventListener(\"toggle\"", siteScript, StringComparison.Ordinal);
-            Assert.Contains("data-specification-path", siteScript, StringComparison.Ordinal);
+            Assert.Contains("data-disclosure-key", siteScript, StringComparison.Ordinal);
 
             var specification = GitSpecificationReference.Resolve(Path.Combine(directory, "valid.md"));
             var store = new ResultHistoryStore(databasePath);
@@ -143,6 +143,7 @@ public sealed class CliWebHostTests : IDisposable
                 "The Test list and specification card should both show the file's last committed revision.");
             Assert.Contains("Test list", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("class=\"card border-0 shadow-sm mt-4 specification-card test-list-card\" open", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("data-disclosure-key=\"test-list\"", verificationHtml, StringComparison.Ordinal);
             Assert.Matches("Specification file</th>\\s*<th scope=\"col\">Pass</th>\\s*<th scope=\"col\">Fail</th>\\s*<th scope=\"col\">Blocked</th>\\s*<th scope=\"col\">N/A</th>\\s*<th scope=\"col\">Not Tested</th>\\s*<th scope=\"col\">Total</th>", verificationHtml);
             Assert.DoesNotContain("Latest result", verificationHtml, StringComparison.Ordinal);
             Assert.DoesNotContain("Last executed", verificationHtml, StringComparison.Ordinal);

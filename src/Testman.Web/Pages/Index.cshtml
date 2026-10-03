@@ -45,7 +45,7 @@
 
 @if (Model.IsVerificationMode)
 {
-<details class="card border-0 shadow-sm mt-4 specification-card test-list-card" open>
+<details data-disclosure-key="test-list" class="card border-0 shadow-sm mt-4 specification-card test-list-card" open>
     <summary class="card-header bg-body-tertiary d-flex justify-content-between gap-2">
         <h2 class="h4 mb-0" id="test-list-heading">Test list</h2>
         <span class="specification-toggle" aria-hidden="true"></span>
@@ -100,7 +100,7 @@
 @foreach (var file in Model.PageContent.Files)
 {
     <details class="card border-0 shadow-sm mt-4 specification-card"
-             data-specification-path="@file.SourcePath"
+             data-disclosure-key="specification:@file.SourcePath"
              open>
         <summary class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2">
             <span>

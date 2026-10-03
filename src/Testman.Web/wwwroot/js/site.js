@@ -1,9 +1,9 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
-function initializeSpecificationCardState(root, storage) {
-    root.querySelectorAll("details[data-specification-path]").forEach((details) => {
-        const storageKey = `testman:specification-open:${details.dataset.specificationPath}`;
+function initializeDisclosureState(root, storage) {
+    root.querySelectorAll("details[data-disclosure-key]").forEach((details) => {
+        const storageKey = `testman:disclosure-open:${details.dataset.disclosureKey}`;
 
         try {
             const savedState = storage?.getItem(storageKey);
@@ -26,12 +26,12 @@ function initializeSpecificationCardState(root, storage) {
 
 if (typeof document !== "undefined") {
     try {
-        initializeSpecificationCardState(document, window.sessionStorage);
+        initializeDisclosureState(document, window.sessionStorage);
     } catch {
-        initializeSpecificationCardState(document, null);
+        initializeDisclosureState(document, null);
     }
 }
 
 if (typeof module !== "undefined") {
-    module.exports = { initializeSpecificationCardState };
+    module.exports = { initializeDisclosureState };
 }
