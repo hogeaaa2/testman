@@ -113,8 +113,8 @@ public sealed class CliWebHostTests : IDisposable
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
 
             var siteScript = await client.GetStringAsync("/js/site.js");
-            Assert.Contains("sessionStorage.getItem", siteScript, StringComparison.Ordinal);
-            Assert.Contains("sessionStorage.setItem", siteScript, StringComparison.Ordinal);
+            Assert.Contains("storage?.getItem", siteScript, StringComparison.Ordinal);
+            Assert.Contains("storage?.setItem", siteScript, StringComparison.Ordinal);
             Assert.Contains("addEventListener(\"toggle\"", siteScript, StringComparison.Ordinal);
             Assert.Contains("data-specification-path", siteScript, StringComparison.Ordinal);
 
