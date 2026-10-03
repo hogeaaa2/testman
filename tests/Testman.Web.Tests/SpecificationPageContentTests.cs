@@ -183,7 +183,7 @@ public sealed class SpecificationPageContentTests
     }
 
     [Fact]
-    public void Create_builds_a_cross_file_test_list_with_latest_status()
+    public void Create_builds_a_cross_file_test_list_with_latest_status_counts()
     {
         var first = Parse("first.md", ValidSpecification("First title", "Overview"));
         var second = Parse("second.md", ValidSpecification("Second title", "Overview").Replace("TC-1", "TC-2", StringComparison.Ordinal));
@@ -199,17 +199,23 @@ public sealed class SpecificationPageContentTests
             content.TestList,
             item =>
             {
-                Assert.Equal("TC-1", item.Id);
-                Assert.Equal("First title", item.Title);
                 Assert.Equal("first.md", item.SourcePath);
-                Assert.Equal("Pass", item.LatestResult?.OutcomeLabel);
-                Assert.Equal(executedAt.ToLocalTime(), item.LatestResult?.ExecutedAtLocal);
+                Assert.Equal(1, item.Pass);
+                Assert.Equal(0, item.Fail);
+                Assert.Equal(0, item.Blocked);
+                Assert.Equal(0, item.NotApplicable);
+                Assert.Equal(0, item.NotTested);
+                Assert.Equal(1, item.Total);
             },
             item =>
             {
-                Assert.Equal("TC-2", item.Id);
-                Assert.Equal("Second title", item.Title);
-                Assert.Null(item.LatestResult);
+                Assert.Equal("second.md", item.SourcePath);
+                Assert.Equal(0, item.Pass);
+                Assert.Equal(0, item.Fail);
+                Assert.Equal(0, item.Blocked);
+                Assert.Equal(0, item.NotApplicable);
+                Assert.Equal(1, item.NotTested);
+                Assert.Equal(1, item.Total);
             });
     }
 

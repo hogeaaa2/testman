@@ -45,36 +45,43 @@
 
 @if (Model.IsVerificationMode)
 {
-<section class="card border-0 shadow-sm mt-4" aria-labelledby="test-list-heading">
+<details class="card border-0 shadow-sm mt-4 specification-card test-list-card" open>
+    <summary class="card-header bg-body-tertiary d-flex justify-content-between gap-2">
+        <h2 class="h4 mb-0" id="test-list-heading">Test list</h2>
+        <span class="specification-toggle" aria-hidden="true"></span>
+    </summary>
     <div class="card-body p-4">
-        <h2 class="h4" id="test-list-heading">Test list</h2>
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
                 <thead>
                     <tr>
-                        <th scope="col">Test ID</th>
-                        <th scope="col">Title</th>
                         <th scope="col">Specification file</th>
-                        <th scope="col">Latest result</th>
-                        <th scope="col">Last executed</th>
+                        <th scope="col">Pass</th>
+                        <th scope="col">Fail</th>
+                        <th scope="col">Blocked</th>
+                        <th scope="col">N/A</th>
+                        <th scope="col">Not Tested</th>
+                        <th scope="col">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model.PageContent.TestList)
                     {
                         <tr>
-                            <th scope="row">@item.Id</th>
-                            <td>@item.Title</td>
-                            <td>@item.SourcePath</td>
-                            <td>@(item.LatestResult?.OutcomeLabel ?? "Not Tested")</td>
-                            <td>@(item.LatestResult?.ExecutedAtLocal.ToString("g") ?? "—")</td>
+                            <th scope="row">@item.SourcePath</th>
+                            <td>@item.Pass</td>
+                            <td>@item.Fail</td>
+                            <td>@item.Blocked</td>
+                            <td>@item.NotApplicable</td>
+                            <td>@item.NotTested</td>
+                            <td>@item.Total</td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
     </div>
-</section>
+</details>
 }
 
 @if (!string.IsNullOrEmpty(Model.SuccessMessage))

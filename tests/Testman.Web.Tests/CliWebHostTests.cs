@@ -128,8 +128,10 @@ public sealed class CliWebHostTests : IDisposable
 
             Assert.Contains("TC-1", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Test list", verificationHtml, StringComparison.Ordinal);
-            Assert.Contains("Latest result", verificationHtml, StringComparison.Ordinal);
-            Assert.Contains("Last executed", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("class=\"card border-0 shadow-sm mt-4 specification-card test-list-card\" open", verificationHtml, StringComparison.Ordinal);
+            Assert.Matches("Specification file</th>\\s*<th scope=\"col\">Pass</th>\\s*<th scope=\"col\">Fail</th>\\s*<th scope=\"col\">Blocked</th>\\s*<th scope=\"col\">N/A</th>\\s*<th scope=\"col\">Not Tested</th>\\s*<th scope=\"col\">Total</th>", verificationHtml);
+            Assert.DoesNotContain("Latest result", verificationHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("Last executed", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Verification precondition", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Shared step", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("<td class=\"markdown-content test-steps\"><ol>", verificationHtml, StringComparison.Ordinal);

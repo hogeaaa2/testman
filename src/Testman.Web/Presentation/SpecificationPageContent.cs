@@ -29,13 +29,21 @@ public sealed record SpecificationPageContent(
             .ToList();
 
         var testList = files
-            .SelectMany(file => file.Titles.SelectMany(title => title.VerificationCases
-                .Where(testCase => testCase.CanRegisterResult)
-                .Select(testCase => new SpecificationTestListItemContent(
-                    testCase.Id,
-                    title.Name,
+            .Select(file =>
+            {
+                var summary = CreateSummary(file.Titles
+                    .SelectMany(title => title.VerificationCases)
+                    .Where(testCase => testCase.CanRegisterResult)
+                    .ToList());
+                return new SpecificationTestListItemContent(
                     file.SourcePath,
-                    testCase.PreviousResult))))
+                    summary.Pass,
+                    summary.Fail,
+                    summary.Blocked,
+                    summary.NotApplicable,
+                    summary.NotTested,
+                    summary.Total);
+            })
             .ToList();
 
         return new SpecificationPageContent(diagnostics, files, testList);
@@ -174,10 +182,13 @@ public sealed record SpecificationFileSummaryContent(
     int NotTested);
 
 public sealed record SpecificationTestListItemContent(
-    string Id,
-    string Title,
     string SourcePath,
-    TestResultContent? LatestResult);
+    int Pass,
+    int Fail,
+    int Blocked,
+    int NotApplicable,
+    int NotTested,
+    int Total);
 
 public sealed record SpecificationTitleContent(
     string Name,
