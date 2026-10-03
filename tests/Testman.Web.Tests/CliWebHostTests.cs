@@ -129,8 +129,8 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Last executed", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Verification precondition", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Shared step", verificationHtml, StringComparison.Ordinal);
-            Assert.Contains("Case step", verificationHtml, StringComparison.Ordinal);
-            Assert.Contains("class=\"markdown-content test-steps\"", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("<td class=\"markdown-content test-steps\"><ol>", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("<li>Case step<br>2. Follow-up step</li>", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Pass", verificationHtml, StringComparison.Ordinal);
@@ -238,8 +238,8 @@ public sealed class CliWebHostTests : IDisposable
     public async Task Verification_form_confirms_partial_selection_then_redirects_after_saving()
     {
         var specification = ValidSpecification("Submit results").Replace(
-            "| TC-1 | Major | Middle | Minor | Case step | Expected success |",
-            "| TC-1 | Major | Middle | Minor | Case step | Expected success |\n| TC-2 | Major | Middle | Other | - | Other success |",
+            "| TC-1 | Major | Middle | Minor | 1. Case step<br>2. Follow-up step | Expected success |",
+            "| TC-1 | Major | Middle | Minor | 1. Case step<br>2. Follow-up step | Expected success |\n| TC-2 | Major | Middle | Other | - | Other success |",
             StringComparison.Ordinal);
         WriteFile("valid.md", specification);
         Git("init");
@@ -438,6 +438,6 @@ public sealed class CliWebHostTests : IDisposable
 
         | ID | Major item | Middle item | Minor item | Steps | Expected result |
         |---|---|---|---|---|---|
-        | TC-1 | Major | Middle | Minor | Case step | Expected success |
+        | TC-1 | Major | Middle | Minor | 1. Case step<br>2. Follow-up step | Expected success |
         """;
 }
