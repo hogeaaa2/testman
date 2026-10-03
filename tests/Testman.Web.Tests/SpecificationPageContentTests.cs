@@ -206,13 +206,15 @@ public sealed class SpecificationPageContentTests
             new SpecificationCatalogResult([first, second], []),
             (_, id) => id == "TC-1"
                 ? [new TestResultRecord(1, 1, executedAt, "Tester", id, TestResultOutcome.Pass, null, "abc")]
-                : []);
+                : [],
+            resolveRevision: path => path == "first.md" ? "first-sha" : "second-sha");
 
         Assert.Collection(
             content.TestList,
             item =>
             {
                 Assert.Equal("first.md", item.SourcePath);
+                Assert.Equal("first-sha", item.SpecificationRevision);
                 Assert.Equal(1, item.Pass);
                 Assert.Equal(0, item.Fail);
                 Assert.Equal(0, item.Blocked);
@@ -223,6 +225,7 @@ public sealed class SpecificationPageContentTests
             item =>
             {
                 Assert.Equal("second.md", item.SourcePath);
+                Assert.Equal("second-sha", item.SpecificationRevision);
                 Assert.Equal(0, item.Pass);
                 Assert.Equal(0, item.Fail);
                 Assert.Equal(0, item.Blocked);

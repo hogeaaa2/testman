@@ -38,6 +38,7 @@ public sealed record SpecificationPageContent(
                     .ToList());
                 return new SpecificationTestListItemContent(
                     file.SourcePath,
+                    file.SpecificationRevision,
                     summary.Pass,
                     summary.Fail,
                     summary.Blocked,
@@ -187,6 +188,7 @@ public sealed record SpecificationFileSummaryContent(
 
 public sealed record SpecificationTestListItemContent(
     string SourcePath,
+    string? SpecificationRevision,
     int Pass,
     int Fail,
     int Blocked,

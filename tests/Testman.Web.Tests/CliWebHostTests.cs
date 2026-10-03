@@ -128,6 +128,9 @@ public sealed class CliWebHostTests : IDisposable
             var verificationHtml = await client.GetStringAsync("/?mode=verification");
 
             Assert.Contains("TC-1", verificationHtml, StringComparison.Ordinal);
+            Assert.True(
+                Regex.Matches(verificationHtml, "valid\\.md\\s+\\(Git revision unavailable\\)").Count >= 2,
+                "The Test list and specification card should both show revision availability.");
             Assert.Contains("Test list", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("class=\"card border-0 shadow-sm mt-4 specification-card test-list-card\" open", verificationHtml, StringComparison.Ordinal);
             Assert.Matches("Specification file</th>\\s*<th scope=\"col\">Pass</th>\\s*<th scope=\"col\">Fail</th>\\s*<th scope=\"col\">Blocked</th>\\s*<th scope=\"col\">N/A</th>\\s*<th scope=\"col\">Not Tested</th>\\s*<th scope=\"col\">Total</th>", verificationHtml);

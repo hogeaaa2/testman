@@ -68,7 +68,17 @@
                     @foreach (var item in Model.PageContent.TestList)
                     {
                         <tr>
-                            <th scope="row">@item.SourcePath</th>
+                            <th scope="row">
+                                @item.SourcePath
+                                @if (item.SpecificationRevision is not null)
+                                {
+                                    <text> (@item.SpecificationRevision)</text>
+                                }
+                                else
+                                {
+                                    <text> (Git revision unavailable)</text>
+                                }
+                            </th>
                             <td>@item.Pass</td>
                             <td>@item.Fail</td>
                             <td>@item.Blocked</td>
