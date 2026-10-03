@@ -15,16 +15,29 @@ public sealed class SpecificationPageContentTests
             [valid, invalid],
             valid.Specification.Diagnostics.Concat(invalid.Specification.Diagnostics).ToList());
 
-        var content = SpecificationPageContent.Create(catalog);
+        var content = SpecificationPageContent.Create(catalog, resolveRevision: _ => "abc123");
 
         var file = Assert.Single(content.Files);
         Assert.Equal("valid.md", file.SourcePath);
+        Assert.Equal("abc123", file.SpecificationRevision);
         Assert.Equal(1, file.FormatVersion);
         Assert.Equal("Valid title", Assert.Single(file.Titles).Name);
         var diagnostic = Assert.Single(content.Diagnostics);
         Assert.Equal("invalid.md", diagnostic.SourcePath);
         Assert.Equal(3, diagnostic.LineNumber);
         Assert.Contains("Required section", diagnostic.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_keeps_a_file_visible_when_its_git_revision_is_unavailable()
+    {
+        var file = Parse("untracked.md", ValidSpecification("Untracked", "Overview"));
+
+        var content = SpecificationPageContent.Create(
+            new SpecificationCatalogResult([file], []),
+            resolveRevision: _ => null);
+
+        Assert.Null(Assert.Single(content.Files).SpecificationRevision);
     }
 
     [Fact]

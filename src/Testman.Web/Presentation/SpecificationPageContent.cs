@@ -12,7 +12,8 @@ public sealed record SpecificationPageContent(
     public static SpecificationPageContent Create(
         SpecificationCatalogResult catalog,
         Func<string, string, IReadOnlyList<TestResultRecord>>? readHistory = null,
-        bool showFileSummaries = false)
+        bool showFileSummaries = false,
+        Func<string, string?>? resolveRevision = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
 
@@ -25,7 +26,7 @@ public sealed record SpecificationPageContent(
 
         var files = catalog.Files
             .Where(file => file.Specification.Titles.Count > 0)
-            .Select(file => CreateFile(file, readHistory, showFileSummaries))
+            .Select(file => CreateFile(file, readHistory, showFileSummaries, resolveRevision))
             .ToList();
 
         var testList = files
@@ -52,7 +53,8 @@ public sealed record SpecificationPageContent(
     private static SpecificationFileContent CreateFile(
         SpecificationFileLoadResult file,
         Func<string, string, IReadOnlyList<TestResultRecord>>? readHistory,
-        bool showFileSummary)
+        bool showFileSummary,
+        Func<string, string?>? resolveRevision)
     {
         var titles = file.Specification.Titles
             .Select(title => CreateTitle(file.SourcePath, title, readHistory))
@@ -65,6 +67,7 @@ public sealed record SpecificationPageContent(
         return new SpecificationFileContent(
             file.SourcePath,
             file.Specification.FormatVersion,
+            resolveRevision?.Invoke(file.SourcePath),
             titles,
             showFileSummary ? CreateSummary(currentCases) : null);
     }
@@ -170,6 +173,7 @@ public sealed record SpecificationDiagnosticContent(
 public sealed record SpecificationFileContent(
     string SourcePath,
     int? FormatVersion,
+    string? SpecificationRevision,
     IReadOnlyList<SpecificationTitleContent> Titles,
     SpecificationFileSummaryContent? Summary);
 

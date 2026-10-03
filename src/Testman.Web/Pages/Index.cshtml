@@ -108,7 +108,17 @@
 {
     <details class="card border-0 shadow-sm mt-4 specification-card" open>
         <summary class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2">
-            <span>@file.SourcePath</span>
+            <span>
+                @file.SourcePath
+                @if (file.SpecificationRevision is not null)
+                {
+                    <text> (@file.SpecificationRevision)</text>
+                }
+                else
+                {
+                    <text> (Git revision unavailable)</text>
+                }
+            </span>
             <span class="d-flex align-items-center gap-2">
                 <span class="badge text-bg-secondary">Format version @file.FormatVersion</span>
                 <span class="specification-toggle" aria-hidden="true"></span>

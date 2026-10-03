@@ -94,6 +94,7 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Middle", html, StringComparison.Ordinal);
             Assert.Contains("Minor", html, StringComparison.Ordinal);
             Assert.Contains("invalid.md", html, StringComparison.Ordinal);
+            Assert.Matches("valid\\.md\\s+\\([0-9a-f]{40}\\)", html);
             Assert.Contains("Required section", html, StringComparison.Ordinal);
             Assert.DoesNotContain("TC-1", html, StringComparison.Ordinal);
             Assert.Contains("Test patterns", html, StringComparison.Ordinal);

@@ -15,7 +15,8 @@ public sealed class SpecificationPageContentSource(
         return SpecificationPageContent.Create(
             catalog,
             ReadHistory,
-            showFileSummaries: Directory.Exists(fullSpecificationPath));
+            showFileSummaries: Directory.Exists(fullSpecificationPath),
+            resolveRevision: ResolveRevision);
     }
 
     private IReadOnlyList<TestResultRecord> ReadHistory(string sourcePath, string testCaseId)
@@ -28,6 +29,18 @@ public sealed class SpecificationPageContentSource(
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {
             return [];
+        }
+    }
+
+    private static string? ResolveRevision(string sourcePath)
+    {
+        try
+        {
+            return GitSpecificationReference.Resolve(sourcePath).SpecificationRevision;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            return null;
         }
     }
 }
