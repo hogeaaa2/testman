@@ -99,11 +99,14 @@
 <input asp-for="ConfirmPartial" type="hidden" />
 @foreach (var file in Model.PageContent.Files)
 {
-    <section class="card border-0 shadow-sm mt-4">
-        <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2">
+    <details class="card border-0 shadow-sm mt-4 specification-card" open>
+        <summary class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2">
             <span>@file.SourcePath</span>
-            <span class="badge text-bg-secondary">Format version @file.FormatVersion</span>
-        </div>
+            <span class="d-flex align-items-center gap-2">
+                <span class="badge text-bg-secondary">Format version @file.FormatVersion</span>
+                <span class="specification-toggle" aria-hidden="true"></span>
+            </span>
+        </summary>
         @if (file.Summary is not null)
         {
             <div class="card-body border-bottom py-3">
@@ -249,7 +252,7 @@
                 </article>
             }
         </div>
-    </section>
+    </details>
 }
 @if (Model.IsVerificationMode)
 {

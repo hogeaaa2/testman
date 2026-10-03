@@ -98,6 +98,9 @@ public sealed class CliWebHostTests : IDisposable
             Assert.DoesNotContain("TC-1", html, StringComparison.Ordinal);
             Assert.Contains("Test patterns", html, StringComparison.Ordinal);
             Assert.Contains("Verification", html, StringComparison.Ordinal);
+            Assert.Contains("<details class=\"card border-0 shadow-sm mt-4 specification-card\" open>", html, StringComparison.Ordinal);
+            Assert.Contains("<summary class=\"card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2\"", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"specification-toggle\"", html, StringComparison.Ordinal);
             Assert.Contains("Current test status", html, StringComparison.Ordinal);
             Assert.Contains("Total 1", html, StringComparison.Ordinal);
             Assert.Contains("Not Tested 1", html, StringComparison.Ordinal);

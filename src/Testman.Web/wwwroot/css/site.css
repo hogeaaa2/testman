@@ -46,6 +46,31 @@ body {
   list-style-position: inside;
 }
 
+.specification-card > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.specification-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.specification-card > summary:focus-visible {
+  outline: 0.2rem solid rgba(37, 99, 235, 0.45);
+  outline-offset: 0.15rem;
+}
+
+.specification-toggle::before {
+  content: "Collapse";
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.specification-card:not([open]) .specification-toggle::before {
+  content: "Expand";
+}
+
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
   text-align: end;
