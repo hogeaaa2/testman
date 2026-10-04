@@ -65,6 +65,37 @@ public sealed class DatabaseMigrationRunnerTests : IDisposable
         Assert.Equal(1, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM test_results"));
     }
 
+    [Fact]
+    public void Apply_enforces_a_non_blank_test_target_name()
+    {
+        DatabaseMigrationRunner.Apply(databasePath);
+        using var connection = OpenConnection();
+
+        Assert.Throws<SqliteException>(() => Execute(
+            connection,
+            "INSERT INTO result_submissions(executed_at_utc, executed_by, test_target_name) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester', '  ')"));
+    }
+
+    [Fact]
+    public void Apply_does_not_recreate_an_existing_version_one_database()
+    {
+        using (var connection = OpenConnection())
+        {
+            Execute(connection, "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at_utc TEXT NOT NULL)");
+            Execute(connection, "INSERT INTO schema_migrations VALUES (1, 'create_result_history', '2026-10-02T00:00:00.0000000Z')");
+            Execute(connection, "CREATE TABLE result_submissions(id INTEGER PRIMARY KEY, executed_at_utc TEXT NOT NULL, executed_by TEXT NOT NULL)");
+            Execute(connection, "INSERT INTO result_submissions VALUES (1, '2026-10-02T00:00:00.0000000Z', 'Existing tester')");
+        }
+
+        DatabaseMigrationRunner.Apply(databasePath);
+
+        using var verified = OpenConnection();
+        Assert.Equal(1, ExecuteScalar<long>(verified, "SELECT COUNT(*) FROM result_submissions"));
+        Assert.Equal(
+            ["id", "executed_at_utc", "executed_by"],
+            ReadStrings(verified, "SELECT name FROM pragma_table_info('result_submissions') ORDER BY cid"));
+    }
+
     public void Dispose() => Directory.Delete(directory, recursive: true);
 
     private SqliteConnection OpenConnection()

@@ -297,10 +297,12 @@ public sealed class CliWebHostTests : IDisposable
             var submissionAction = SubmissionAction(page);
             Assert.EndsWith("#result-submission", submissionAction, StringComparison.Ordinal);
             var values = SubmissionValues(page);
+            values["TestTargetName"] = "app.exe";
 
             using var confirmationResponse = await client.PostAsync(submissionAction, new FormUrlEncodedContent(values));
             var confirmationHtml = await confirmationResponse.Content.ReadAsStringAsync();
             Assert.Contains("Not all test cases have a result", confirmationHtml, StringComparison.Ordinal);
+            Assert.Contains("value=\"app.exe\"", confirmationHtml, StringComparison.Ordinal);
             AssertFeedbackNearSubmission(
                 confirmationHtml,
                 "Not all test cases have a result");
@@ -441,11 +443,15 @@ public sealed class CliWebHostTests : IDisposable
             "name=\"ConfirmPartial\"[^>]*value=\"([^\"]+)\"",
             RegexOptions.CultureInvariant).Groups[1].Value;
         Assert.NotEmpty(confirmPartial);
+        var testTargetName = Regex.Match(
+            html,
+            "name=\"TestTargetName\"[^>]*value=\"([^\"]*)\"",
+            RegexOptions.CultureInvariant).Groups[1].Value;
         return new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = WebUtility.HtmlDecode(token),
             ["ExecutedBy"] = "Tester",
-            ["TestTargetName"] = "app.exe",
+            ["TestTargetName"] = WebUtility.HtmlDecode(testTargetName),
             ["ConfirmPartial"] = confirmPartial,
             ["ResultCases[0].SourcePath"] = Path.Combine(directory, "valid.md"),
             ["ResultCases[0].TestCaseId"] = "TC-1",
