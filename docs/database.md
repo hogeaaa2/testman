@@ -21,8 +21,11 @@ SQLiteはテスト実施結果と、その結果を解釈するために必要�
 | id | INTEGER | PRIMARY KEY AUTOINCREMENT | 登録操作の内部ID |
 | executed_at_utc | TEXT | NOT NULL | UTCの実施日時 |
 | executed_by | TEXT | NOT NULL | 前後の空白を除去した検証実施者名 |
+| test_target_name | TEXT | NOT NULL | 1回の登録操作に共通するテスト対象ソフトの名前 |
 
 `executed_at_utc`はUTCのISO 8601 round-trip形式で保存し、末尾に `Z` を持つ。`executed_by`は前後の空白を除去した後に空であってはならない。
+
+`test_target_name`は検証実施者名と同様に必須とし、前後の空白を除去した後に空であってはならない。テスト対象名にはexeのファイル名などを記載できるが、特定のビルドを一意に識別する保証はしない。
 
 ### test_results
 
@@ -35,7 +38,7 @@ SQLiteはテスト実施結果と、その結果を解釈するために必要�
 | test_case_id | TEXT | NOT NULL | 対象Test ID |
 | result | TEXT | NOT NULL, CHECK | `pass`、`fail`、`blocked`、`not_applicable` のいずれか |
 | comment | TEXT | NULL | 任意コメント |
-| specification_revision | TEXT | NOT NULL | 実施時点の仕様を含むGit HEAD commit SHA |
+| specification_revision | TEXT | NOT NULL | 実施時点で対象Markdownファイルを最後に変更したGit commit SHA |
 
 - `submission_id`の外部キーは削除を連鎖させず、親submissionがあることを要求する。
 - 空のコメントはNULLとして保存してよい。
@@ -51,7 +54,7 @@ SQLiteはテスト実施結果と、その結果を解釈するために必要�
 | name | TEXT | NOT NULL | migration名 |
 | applied_at_utc | TEXT | NOT NULL | UTCの適用日時 |
 
-migrationはversion順に一度だけ適用し、適用済みDBの実施履歴を保持する。
+migrationはversion順に一度だけ適用する。V0.1公開後のschema変更では、既存の実施履歴への影響と移行方法を変更ごとに確認する。
 
 ### Indexes
 
@@ -67,7 +70,8 @@ migrationはversion順に一度だけ適用し、適用済みDBの実施履歴�
 - 現在の仕様に存在しないTest IDの履歴も、repository_root、source_file、Test ID、Git commit SHAによって追跡可能な状態を保つ。
 - 過去の仕様本文はGitで確認し、testmanは過去本文をDBへ保存またはWeb UIで復元表示しない。
 - 実施日時はUTCで保存し、Web画面では実行環境のローカル時刻へ変換して表示する。
-- migrationを適用した既存DBの履歴を保持する。
+- migrationで履歴の削除、意味の変更、または復元できない変換が必要になる場合は、対象データと影響を示して実装前にユーザーの判断を得る。履歴をどう扱うかは変更内容ごとに決める。
+- V0.1公開前の開発用DBに対する、この列追加の後方互換性は要求しない。実装では初期migrationを正式schemaへ合わせる。アプリケーションが既存DBを暗黙に削除・再作成する挙動は設けない。
 
 ## 現在状況の集計
 
@@ -75,6 +79,7 @@ migrationはversion順に一度だけ適用し、適用済みDBの実施履歴�
 
 - 総数は現在の有効かつ一意なTest ID数とする。
 - 各結果の件数は、Test IDごとに内部IDが最大の実施記録を最新結果として集計する。
+- テスト対象名で前回結果や現在状況の集計を絞り込まない。
 - 履歴がない現在のTest IDは未テストとして数える。
 - Not TestedはDBへ保存する結果値ではなく、現在のTest IDに対応する実施記録が存在しない状態から導出する。
 - 現在の仕様から削除済みのTest IDは現在状況から除外するが、保存済み履歴は保持する。
@@ -92,7 +97,8 @@ migrationはversion順に一度だけ適用し、適用済みDBの実施履歴�
 - 仕様ファイルごとに、そのファイルを管理するGitリポジトリを探索する。testman本体と異なるGitリポジトリでもよい。
 - `repository_root`には、当該Gitリポジトリルートの正規化済み絶対パスを保存する。
 - `source_file`には、当該Gitリポジトリのルートを基準とする相対パスを `/` 区切りで保存する。
-- `specification_revision`には、当該GitリポジトリのHEAD commit SHAを保存する。
+- `specification_revision`には、結果登録時点で当該仕様Markdownファイルを最後に変更したコミットのSHAを保存する。リポジトリ全体のHEAD SHAではなく、Test listで当該ファイルのパスに併記するSHAと同じ意味とする。
+- `specification_revision`は仕様Markdownのリビジョンであり、テスト対象ソフトのリビジョンではない。テスト対象名とは別に保持する。
 - 対象の仕様ファイルがGitで追跡されていない場合、またはインデックスもしくは作業ツリーでHEADと異なる場合は、閲覧を許可するが結果登録を許可しない。
 - 同じGitリポジトリ内の対象仕様ファイル以外に未コミット変更があっても、それだけを理由に結果登録を拒否しない。
 - V0.1ではGitリポジトリまたは仕様ファイルの移動・改名を想定しない。移動後のパスと過去履歴を自動的に再関連付けしない。
