@@ -74,6 +74,9 @@ public sealed class DatabaseMigrationRunnerTests : IDisposable
         Assert.Throws<SqliteException>(() => Execute(
             connection,
             "INSERT INTO result_submissions(executed_at_utc, executed_by, test_target_name) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester', '  ')"));
+        Assert.Throws<SqliteException>(() => Execute(
+            connection,
+            "INSERT INTO result_submissions(executed_at_utc, executed_by, test_target_name) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester', NULL)"));
     }
 
     [Fact]
