@@ -174,6 +174,7 @@
                                                         <span class="badge text-bg-primary">@testCase.PreviousResult.OutcomeLabel</span>
                                                         <small>@testCase.PreviousResult.ExecutedAtLocal.ToString("g")</small>
                                                         <small class="text-body-secondary">@testCase.PreviousResult.ExecutedBy</small>
+                                                        <small class="text-body-secondary">@testCase.PreviousResult.TestTargetName</small>
                                                     </div>
                                                 }
                                                 @if (testCase.History.Count > 0)
@@ -186,11 +187,11 @@
                                                                 <li class="mb-2">
                                                                     <strong>@result.OutcomeLabel</strong>
                                                                     <span> — @result.ExecutedAtLocal.ToString("g") — @result.ExecutedBy</span>
+                                                                    <div>@result.TestTargetName</div>
                                                                     @if (!string.IsNullOrEmpty(result.Comment))
                                                                     {
                                                                         <div>@result.Comment</div>
                                                                     }
-                                                                    <code>@result.SpecificationRevision</code>
                                                                 </li>
                                                             }
                                                         </ol>
@@ -294,6 +295,10 @@
                 <div class="alert alert-warning" role="alert">@Model.ConfirmationMessage</div>
             }
             <div class="d-flex flex-column flex-md-row gap-3 align-items-md-end">
+                <div class="flex-grow-1">
+                    <label asp-for="TestTargetName" class="form-label">Test target name</label>
+                    <input asp-for="TestTargetName" class="form-control" required />
+                </div>
                 <div class="flex-grow-1">
                     <label asp-for="ExecutedBy" class="form-label">Executed by</label>
                     <input asp-for="ExecutedBy" class="form-control" required />

@@ -127,6 +127,7 @@ public sealed class CliWebHostTests : IDisposable
             store.Append(new ResultSubmission(
                 new DateTimeOffset(2026, 10, 2, 3, 4, 5, TimeSpan.Zero),
                 "<script>tester</script>",
+                "<script>target</script>",
                 [new TestResultInput(
                     specification,
                     "TC-1",
@@ -157,6 +158,10 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("<li>Case step<br>2. Follow-up step</li>", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Expected success", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("Test target name", verificationHtml, StringComparison.Ordinal);
+            Assert.Contains("&lt;script&gt;target&lt;/script&gt;", verificationHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("<script>target</script>", verificationHtml, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<code>", verificationHtml, StringComparison.Ordinal);
             Assert.Matches(
                 "Result input</th>\\s*<th scope=\"col\">Optional comment</th>",
                 verificationHtml);
@@ -440,6 +445,7 @@ public sealed class CliWebHostTests : IDisposable
         {
             ["__RequestVerificationToken"] = WebUtility.HtmlDecode(token),
             ["ExecutedBy"] = "Tester",
+            ["TestTargetName"] = "app.exe",
             ["ConfirmPartial"] = confirmPartial,
             ["ResultCases[0].SourcePath"] = Path.Combine(directory, "valid.md"),
             ["ResultCases[0].TestCaseId"] = "TC-1",

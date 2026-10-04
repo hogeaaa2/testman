@@ -26,6 +26,9 @@ public sealed class DatabaseMigrationRunnerTests : IDisposable
         Assert.Equal(["1:create_result_history"],
             ReadStrings(connection, "SELECT CAST(version AS TEXT) || ':' || name FROM schema_migrations ORDER BY version"));
         Assert.Equal(2, ExecuteScalar<long>(connection, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name LIKE 'ix_test_results_%'"));
+        Assert.Equal(
+            ["id", "executed_at_utc", "executed_by", "test_target_name"],
+            ReadStrings(connection, "SELECT name FROM pragma_table_info('result_submissions') ORDER BY cid"));
     }
 
     [Fact]
@@ -34,7 +37,7 @@ public sealed class DatabaseMigrationRunnerTests : IDisposable
         DatabaseMigrationRunner.Apply(databasePath);
         using (var connection = OpenConnection())
         {
-            Execute(connection, "INSERT INTO result_submissions(executed_at_utc, executed_by) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester')");
+            Execute(connection, "INSERT INTO result_submissions(executed_at_utc, executed_by, test_target_name) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester', 'app.exe')");
             Execute(connection, "INSERT INTO test_results(submission_id, repository_root, source_file, test_case_id, result, specification_revision) VALUES (1, 'D:/repo', 'spec.md', 'TC-1', 'pass', 'abc123')");
         }
 
@@ -55,7 +58,7 @@ public sealed class DatabaseMigrationRunnerTests : IDisposable
             connection,
             "INSERT INTO test_results(submission_id, repository_root, source_file, test_case_id, result, specification_revision) VALUES (999, 'D:/repo', 'spec.md', 'TC-1', 'pass', 'abc123')"));
 
-        Execute(connection, "INSERT INTO result_submissions(executed_at_utc, executed_by) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester')");
+        Execute(connection, "INSERT INTO result_submissions(executed_at_utc, executed_by, test_target_name) VALUES ('2026-10-02T00:00:00.0000000Z', 'Tester', 'app.exe')");
         Execute(connection, "INSERT INTO test_results(submission_id, repository_root, source_file, test_case_id, result, specification_revision) VALUES (1, 'D:/repo', 'spec.md', 'TC-1', 'pass', 'abc123')");
 
         Assert.Throws<SqliteException>(() => Execute(connection, "DELETE FROM result_submissions WHERE id = 1"));

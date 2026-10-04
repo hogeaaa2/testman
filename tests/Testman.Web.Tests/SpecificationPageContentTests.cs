@@ -90,8 +90,8 @@ public sealed class SpecificationPageContentTests
         var executedAtUtc = new DateTimeOffset(2026, 10, 2, 3, 4, 5, TimeSpan.Zero);
         var history = new[]
         {
-            new TestResultRecord(2, 2, executedAtUtc, "Latest", "TC-1", TestResultOutcome.Pass, "done", "def456"),
-            new TestResultRecord(1, 1, executedAtUtc.AddDays(-1), "First", "TC-1", TestResultOutcome.Fail, null, "abc123"),
+            new TestResultRecord(2, 2, executedAtUtc, "Latest", "latest.exe", "TC-1", TestResultOutcome.Pass, "done", "def456"),
+            new TestResultRecord(1, 1, executedAtUtc.AddDays(-1), "First", "first.exe", "TC-1", TestResultOutcome.Fail, null, "abc123"),
         };
 
         var content = SpecificationPageContent.Create(
@@ -106,9 +106,11 @@ public sealed class SpecificationPageContentTests
         var testCase = Assert.Single(Assert.Single(Assert.Single(content.Files).Titles).VerificationCases);
         Assert.Equal(TestResultOutcome.Pass, testCase.PreviousResult?.Outcome);
         Assert.Equal(executedAtUtc.ToLocalTime(), testCase.PreviousResult?.ExecutedAtLocal);
+        Assert.Equal("latest.exe", testCase.PreviousResult?.TestTargetName);
         Assert.Equal(2, testCase.History.Count);
         Assert.Equal("def456", testCase.History[0].SpecificationRevision);
         Assert.Equal("First", testCase.History[1].ExecutedBy);
+        Assert.Equal("first.exe", testCase.History[1].TestTargetName);
     }
 
     [Fact]
@@ -150,7 +152,7 @@ public sealed class SpecificationPageContentTests
         var content = SpecificationPageContent.Create(
             new SpecificationCatalogResult([file], file.Specification.Diagnostics),
             (_, id) => outcomes.TryGetValue(id, out var outcome)
-                ? [new TestResultRecord(1, 1, DateTimeOffset.UtcNow, "Tester", id, outcome, null, "abc")]
+                ? [new TestResultRecord(1, 1, DateTimeOffset.UtcNow, "Tester", "app.exe", id, outcome, null, "abc")]
                 : [],
             showFileSummaries: true);
 
@@ -205,7 +207,7 @@ public sealed class SpecificationPageContentTests
         var content = SpecificationPageContent.Create(
             new SpecificationCatalogResult([first, second], []),
             (_, id) => id == "TC-1"
-                ? [new TestResultRecord(1, 1, executedAt, "Tester", id, TestResultOutcome.Pass, null, "abc")]
+                ? [new TestResultRecord(1, 1, executedAt, "Tester", "app.exe", id, TestResultOutcome.Pass, null, "abc")]
                 : [],
             resolveRevision: path => path == "first.md" ? "first-sha" : "second-sha");
 

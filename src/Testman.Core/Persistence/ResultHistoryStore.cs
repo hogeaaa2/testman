@@ -21,6 +21,7 @@ public sealed record TestResultInput(
 public sealed record ResultSubmission(
     DateTimeOffset ExecutedAt,
     string ExecutedBy,
+    string TestTargetName,
     IReadOnlyList<TestResultInput> Results);
 
 public sealed record TestResultRecord(
@@ -28,6 +29,7 @@ public sealed record TestResultRecord(
     long SubmissionId,
     DateTimeOffset ExecutedAtUtc,
     string ExecutedBy,
+    string TestTargetName,
     string TestCaseId,
     TestResultOutcome Outcome,
     string? Comment,
@@ -50,6 +52,12 @@ public sealed class ResultHistoryStore(string databasePath)
             throw new ArgumentException("Executor name is required.", nameof(submission));
         }
 
+        var testTargetName = submission.TestTargetName?.Trim();
+        if (string.IsNullOrEmpty(testTargetName))
+        {
+            throw new ArgumentException("Test target name is required.", nameof(submission));
+        }
+
         if (submission.Results is null || submission.Results.Count == 0)
         {
             throw new ArgumentException("At least one result is required.", nameof(submission));
@@ -60,7 +68,12 @@ public sealed class ResultHistoryStore(string databasePath)
         using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
         using var transaction = connection.BeginTransaction();
 
-        var submissionId = InsertSubmission(connection, transaction, submission.ExecutedAt, executedBy);
+        var submissionId = InsertSubmission(
+            connection,
+            transaction,
+            submission.ExecutedAt,
+            executedBy,
+            testTargetName);
         foreach (var result in results)
         {
             InsertResult(connection, transaction, submissionId, result);
@@ -103,6 +116,7 @@ public sealed class ResultHistoryStore(string databasePath)
                 result.submission_id,
                 submission.executed_at_utc,
                 submission.executed_by,
+                submission.test_target_name,
                 result.test_case_id,
                 result.result,
                 result.comment,
@@ -132,9 +146,10 @@ public sealed class ResultHistoryStore(string databasePath)
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal),
                 reader.GetString(3),
                 reader.GetString(4),
-                FromDatabaseValue(reader.GetString(5)),
-                reader.IsDBNull(6) ? null : reader.GetString(6),
-                reader.GetString(7)));
+                reader.GetString(5),
+                FromDatabaseValue(reader.GetString(6)),
+                reader.IsDBNull(7) ? null : reader.GetString(7),
+                reader.GetString(8)));
         }
 
         return records;
@@ -169,19 +184,21 @@ public sealed class ResultHistoryStore(string databasePath)
         SqliteConnection connection,
         SqliteTransaction transaction,
         DateTimeOffset executedAt,
-        string executedBy)
+        string executedBy,
+        string testTargetName)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            INSERT INTO result_submissions(executed_at_utc, executed_by)
-            VALUES ($executedAtUtc, $executedBy);
+            INSERT INTO result_submissions(executed_at_utc, executed_by, test_target_name)
+            VALUES ($executedAtUtc, $executedBy, $testTargetName);
             SELECT last_insert_rowid();
             """;
         command.Parameters.AddWithValue(
             "$executedAtUtc",
             executedAt.UtcDateTime.ToString("O", CultureInfo.InvariantCulture));
         command.Parameters.AddWithValue("$executedBy", executedBy);
+        command.Parameters.AddWithValue("$testTargetName", testTargetName);
         return (long)command.ExecuteScalar()!;
     }
 

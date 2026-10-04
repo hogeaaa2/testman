@@ -11,6 +11,7 @@ public sealed record ResultCaseInput(
 
 public sealed record ResultSubmissionRequest(
     string ExecutedBy,
+    string TestTargetName,
     IReadOnlyList<ResultCaseInput> Cases,
     bool ConfirmPartial);
 
@@ -39,6 +40,10 @@ public sealed class ResultSubmissionCoordinator(
         if (string.IsNullOrWhiteSpace(request.ExecutedBy))
         {
             return Invalid("Executor name is required.");
+        }
+        if (string.IsNullOrWhiteSpace(request.TestTargetName))
+        {
+            return Invalid("Test target name is required.");
         }
 
         var catalog = SpecificationCatalog.Load(specificationPath, workingDirectory);
@@ -99,6 +104,7 @@ public sealed class ResultSubmissionCoordinator(
             resultHistory.Append(new ResultSubmission(
                 timeProvider.GetUtcNow(),
                 request.ExecutedBy,
+                request.TestTargetName,
                 inputs));
         }
         catch (InvalidOperationException)

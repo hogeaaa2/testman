@@ -33,6 +33,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
         var submissionId = store.Append(new ResultSubmission(
             new DateTimeOffset(2026, 10, 2, 12, 34, 56, TimeSpan.FromHours(9)),
             "  Tester  ",
+            "  app.exe  ",
             [
                 Result("TC-1", TestResultOutcome.Pass, "works"),
                 Result("TC-2", TestResultOutcome.NotApplicable, "  "),
@@ -40,8 +41,8 @@ public sealed class ResultHistoryStoreTests : IDisposable
 
         using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
         Assert.Equal(
-            [$"{submissionId}|2026-10-02T03:34:56.0000000Z|Tester"],
-            ReadStrings(connection, "SELECT id || '|' || executed_at_utc || '|' || executed_by FROM result_submissions"));
+            [$"{submissionId}|2026-10-02T03:34:56.0000000Z|Tester|app.exe"],
+            ReadStrings(connection, "SELECT id || '|' || executed_at_utc || '|' || executed_by || '|' || test_target_name FROM result_submissions"));
         Assert.Equal(
             [
                 $"{submissionId}|TC-1|pass|works",
@@ -54,8 +55,8 @@ public sealed class ResultHistoryStoreTests : IDisposable
     public void Append_preserves_previous_results_for_the_same_test_case()
     {
         var store = new ResultHistoryStore(databasePath);
-        store.Append(new ResultSubmission(DateTimeOffset.UtcNow, "Tester", [Result("TC-1", TestResultOutcome.Fail, null)]));
-        store.Append(new ResultSubmission(DateTimeOffset.UtcNow, "Tester", [Result("TC-1", TestResultOutcome.Pass, null)]));
+        store.Append(new ResultSubmission(DateTimeOffset.UtcNow, "Tester", "first.exe", [Result("TC-1", TestResultOutcome.Fail, null)]));
+        store.Append(new ResultSubmission(DateTimeOffset.UtcNow, "Tester", "second.exe", [Result("TC-1", TestResultOutcome.Pass, null)]));
 
         using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
         Assert.Equal(
@@ -71,10 +72,12 @@ public sealed class ResultHistoryStoreTests : IDisposable
         store.Append(new ResultSubmission(
             new DateTimeOffset(2026, 10, 2, 12, 0, 0, TimeSpan.Zero),
             "First tester",
+            "first.exe",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.Fail, "first")]));
         store.Append(new ResultSubmission(
             new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero),
             "Latest tester",
+            "latest.exe",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.Pass, "latest")]));
 
         var latest = store.ReadLatest(specification.Identity, "TC-1");
@@ -83,6 +86,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
         Assert.Equal(TestResultOutcome.Pass, latest.Outcome);
         Assert.Equal("latest", latest.Comment);
         Assert.Equal("Latest tester", latest.ExecutedBy);
+        Assert.Equal("latest.exe", latest.TestTargetName);
         Assert.Equal(new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero), latest.ExecutedAtUtc);
     }
 
@@ -94,6 +98,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
         store.Append(new ResultSubmission(
             DateTimeOffset.UtcNow,
             "Tester",
+            "app.exe",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.Pass, null)]));
 
         Assert.Null(store.ReadLatest(specification.Identity, "TC-2"));
@@ -107,10 +112,12 @@ public sealed class ResultHistoryStoreTests : IDisposable
         store.Append(new ResultSubmission(
             new DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero),
             "First",
+            "first.exe",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.Blocked, null)]));
         store.Append(new ResultSubmission(
             new DateTimeOffset(2026, 10, 2, 0, 0, 0, TimeSpan.Zero),
             "Second",
+            "second.exe",
             [new TestResultInput(specification, "TC-1", TestResultOutcome.NotApplicable, "later")]));
 
         var history = store.ReadHistory(specification.Identity, "TC-1");
@@ -121,12 +128,14 @@ public sealed class ResultHistoryStoreTests : IDisposable
             {
                 Assert.Equal(TestResultOutcome.NotApplicable, latest.Outcome);
                 Assert.Equal("Second", latest.ExecutedBy);
+                Assert.Equal("second.exe", latest.TestTargetName);
                 Assert.Equal("later", latest.Comment);
             },
             first =>
             {
                 Assert.Equal(TestResultOutcome.Blocked, first.Outcome);
                 Assert.Equal("First", first.ExecutedBy);
+                Assert.Equal("first.exe", first.TestTargetName);
                 Assert.Null(first.Comment);
             });
     }
@@ -139,6 +148,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
         store.Append(new ResultSubmission(
             DateTimeOffset.UtcNow,
             "Tester",
+            "app.exe",
             [new TestResultInput(committed, "TC-1", TestResultOutcome.Pass, null)]));
         File.AppendAllText(specificationPath, "\nchanged");
 
@@ -158,6 +168,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
         Assert.Throws<ArgumentException>(() => store.Append(new ResultSubmission(
             DateTimeOffset.UtcNow,
             "Tester",
+            "app.exe",
             [Result("TC-1", TestResultOutcome.Pass, null), invalid])));
 
         using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
@@ -187,6 +198,7 @@ public sealed class ResultHistoryStoreTests : IDisposable
         Assert.Throws<SqliteException>(() => store.Append(new ResultSubmission(
             DateTimeOffset.UtcNow,
             "Tester",
+            "app.exe",
             [Result("TC-1", TestResultOutcome.Pass, null), Result("TC-2", TestResultOutcome.Fail, null)])));
 
         using var verified = SqliteConnectionFactory.Open(databasePath, pooling: false);
@@ -200,9 +212,11 @@ public sealed class ResultHistoryStoreTests : IDisposable
         var store = new ResultHistoryStore(databasePath);
 
         Assert.Throws<ArgumentException>(() => store.Append(
-            new ResultSubmission(DateTimeOffset.UtcNow, "  ", [Result("TC-1", TestResultOutcome.Pass, null)])));
+            new ResultSubmission(DateTimeOffset.UtcNow, "  ", "app.exe", [Result("TC-1", TestResultOutcome.Pass, null)])));
         Assert.Throws<ArgumentException>(() => store.Append(
-            new ResultSubmission(DateTimeOffset.UtcNow, "Tester", [])));
+            new ResultSubmission(DateTimeOffset.UtcNow, "Tester", "app.exe", [])));
+        Assert.Throws<ArgumentException>(() => store.Append(
+            new ResultSubmission(DateTimeOffset.UtcNow, "Tester", "  ", [Result("TC-1", TestResultOutcome.Pass, null)])));
     }
 
     public void Dispose() => DeleteDirectory(directory);

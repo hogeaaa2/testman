@@ -36,12 +36,14 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
     {
         var result = coordinator.Submit(new ResultSubmissionRequest(
             " Tester ",
+            " app.exe ",
             [Input("TC-1", "pass"), Input("TC-2", "blocked")],
             ConfirmPartial: false));
 
         Assert.Equal(ResultSubmissionStatus.Saved, result.Status);
         using var connection = SqliteConnectionFactory.Open(databasePath, pooling: false);
         Assert.Equal(1L, Scalar(connection, "SELECT COUNT(*) FROM result_submissions"));
+        Assert.Equal("app.exe", TextScalar(connection, "SELECT test_target_name FROM result_submissions"));
         Assert.Equal(2L, Scalar(connection, "SELECT COUNT(*) FROM test_results"));
     }
 
@@ -50,6 +52,7 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
     {
         var request = new ResultSubmissionRequest(
             "Tester",
+            "app.exe",
             [Input("TC-1", "fail"), Input("TC-2", null)],
             ConfirmPartial: false);
 
@@ -67,18 +70,22 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
     {
         var empty = coordinator.Submit(new ResultSubmissionRequest(
             "Tester",
+            "app.exe",
             [Input("TC-1", null), Input("TC-2", null)],
             ConfirmPartial: false));
         var tampered = coordinator.Submit(new ResultSubmissionRequest(
             "Tester",
+            "app.exe",
             [Input("TC-1", "pass"), Input("TC-999", "fail")],
             ConfirmPartial: true));
         var malformedPath = coordinator.Submit(new ResultSubmissionRequest(
             "Tester",
+            "app.exe",
             [new ResultCaseInput("\0", "TC-1", "pass", null), Input("TC-2", "pass")],
             ConfirmPartial: true));
         var wrongCase = coordinator.Submit(new ResultSubmissionRequest(
             "Tester",
+            "app.exe",
             [Input("tc-1", "pass"), Input("TC-2", "pass")],
             ConfirmPartial: true));
 
@@ -90,12 +97,27 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public void Submit_requires_a_test_target_name()
+    {
+        var result = coordinator.Submit(new ResultSubmissionRequest(
+            "Tester",
+            "  ",
+            [Input("TC-1", "pass"), Input("TC-2", "pass")],
+            ConfirmPartial: false));
+
+        Assert.Equal(ResultSubmissionStatus.Invalid, result.Status);
+        Assert.Equal("Test target name is required.", result.Message);
+        Assert.Equal(0L, CountResults());
+    }
+
+    [Fact]
     public void Submit_rejects_a_specification_with_uncommitted_changes()
     {
         File.AppendAllText(specificationPath, "\nchanged");
 
         var result = coordinator.Submit(new ResultSubmissionRequest(
             "Tester",
+            "app.exe",
             [Input("TC-1", "pass"), Input("TC-2", "pass")],
             ConfirmPartial: false));
 
@@ -123,6 +145,13 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         return (long)command.ExecuteScalar()!;
+    }
+
+    private static string TextScalar(SqliteConnection connection, string sql)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return (string)command.ExecuteScalar()!;
     }
 
     private void Git(params string[] arguments)

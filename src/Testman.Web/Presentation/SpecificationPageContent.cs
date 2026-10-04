@@ -162,6 +162,7 @@ public sealed record SpecificationPageContent(
             result.Outcome,
             result.ExecutedAtUtc.ToLocalTime(),
             result.ExecutedBy,
+            result.TestTargetName,
             result.Comment,
             result.SpecificationRevision);
 }
@@ -224,6 +225,7 @@ public sealed record TestResultContent(
     TestResultOutcome Outcome,
     DateTimeOffset ExecutedAtLocal,
     string ExecutedBy,
+    string TestTargetName,
     string? Comment,
     string SpecificationRevision)
 {

@@ -18,6 +18,9 @@ public sealed class IndexModel(
     public string ExecutedBy { get; set; } = string.Empty;
 
     [BindProperty]
+    public string TestTargetName { get; set; } = string.Empty;
+
+    [BindProperty]
     public List<ResultCaseForm> ResultCases { get; set; } = [];
 
     [BindProperty]
@@ -45,6 +48,7 @@ public sealed class IndexModel(
         {
             var response = submissionCoordinator.Submit(new ResultSubmissionRequest(
                 ExecutedBy,
+                TestTargetName,
                 ResultCases.Select(item => new ResultCaseInput(
                     item.SourcePath,
                     item.TestCaseId,

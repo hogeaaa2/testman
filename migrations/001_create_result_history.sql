@@ -7,7 +7,8 @@ CREATE TABLE schema_migrations (
 CREATE TABLE result_submissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     executed_at_utc TEXT NOT NULL,
-    executed_by TEXT NOT NULL CHECK (length(trim(executed_by)) > 0)
+    executed_by TEXT NOT NULL CHECK (length(trim(executed_by)) > 0),
+    test_target_name TEXT NOT NULL CHECK (length(trim(test_target_name)) > 0)
 );
 
 CREATE TABLE test_results (
