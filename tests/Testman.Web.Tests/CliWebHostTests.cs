@@ -115,6 +115,7 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Not Tested 1", html, StringComparison.Ordinal);
             Assert.Contains("/lib/bootstrap/dist/css/bootstrap.min.", html, StringComparison.Ordinal);
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("verification-table", html, StringComparison.Ordinal);
 
             var siteScript = await client.GetStringAsync("/js/site.js");
             Assert.Contains("storage?.getItem", siteScript, StringComparison.Ordinal);
@@ -160,6 +161,7 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Previous result", verificationHtml, StringComparison.Ordinal);
             Assert.DoesNotContain("d-flex flex-column gap-1 align-items-start", verificationHtml, StringComparison.Ordinal);
             Assert.Contains("class=\"table table-striped align-middle verification-table\"", verificationHtml, StringComparison.Ordinal);
+            Assert.Single(Regex.Matches(verificationHtml, "verification-table").Cast<Match>());
             Assert.Matches(
                 "<colgroup>\\s*<col class=\"verification-col-id\" />\\s*<col class=\"verification-col-steps\" />\\s*<col class=\"verification-col-expected\" />\\s*<col class=\"verification-col-previous\" />\\s*<col class=\"verification-col-result\" />\\s*<col class=\"verification-col-comment\" />\\s*</colgroup>",
                 verificationHtml);
@@ -183,12 +185,12 @@ public sealed class CliWebHostTests : IDisposable
             Assert.DoesNotContain("<img src=x", verificationHtml, StringComparison.OrdinalIgnoreCase);
 
             var siteCss = await client.GetStringAsync("/css/site.css");
-            Assert.Contains(".verification-col-id", siteCss, StringComparison.Ordinal);
-            Assert.Contains("width: 6%", siteCss, StringComparison.Ordinal);
-            Assert.Contains("width: 28%", siteCss, StringComparison.Ordinal);
-            Assert.Contains("width: 16%", siteCss, StringComparison.Ordinal);
-            Assert.Contains("width: 12%", siteCss, StringComparison.Ordinal);
+            Assert.Matches("\\.verification-table\\s*\\{\\s*min-width: 72rem;\\s*table-layout: fixed;", siteCss);
+            Assert.Matches("\\.verification-col-id\\s*\\{\\s*width: 6%;", siteCss);
+            Assert.Matches("\\.verification-col-steps\\s*\\{\\s*width: 28%;", siteCss);
+            Assert.Matches("\\.verification-col-expected\\s*\\{\\s*width: 26%;", siteCss);
             Assert.Matches("\\.verification-col-previous\\s*\\{\\s*width: 12%;", siteCss);
+            Assert.Matches("\\.verification-col-result\\s*\\{\\s*width: 12%;", siteCss);
             Assert.Matches("\\.verification-col-comment\\s*\\{\\s*width: 16%;", siteCss);
             Assert.Contains("overflow-wrap: anywhere", siteCss, StringComparison.Ordinal);
             Assert.DoesNotContain("Safe overview", verificationHtml, StringComparison.Ordinal);
