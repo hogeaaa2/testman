@@ -101,6 +101,9 @@ public sealed class CliWebHostTests : IDisposable
             Assert.DoesNotContain("TC-1", html, StringComparison.Ordinal);
             Assert.Contains("Test patterns", html, StringComparison.Ordinal);
             Assert.Contains("Verification", html, StringComparison.Ordinal);
+            Assert.Contains("<header class=\"d-flex justify-content-end mb-4\">", html, StringComparison.Ordinal);
+            Assert.Contains("role=\"group\" aria-label=\"Specification view mode\"", html, StringComparison.Ordinal);
+            AssertModeLinks(html, patternPressed: true);
             Assert.DoesNotContain("Test specifications", html, StringComparison.Ordinal);
             Assert.DoesNotContain("Specification workspace", html, StringComparison.Ordinal);
             Assert.DoesNotContain("Review test coverage", html, StringComparison.Ordinal);
@@ -147,6 +150,7 @@ public sealed class CliWebHostTests : IDisposable
             var verificationHtml = await client.GetStringAsync("/?mode=verification");
 
             Assert.Contains("TC-1", verificationHtml, StringComparison.Ordinal);
+            AssertModeLinks(verificationHtml, patternPressed: false);
             Assert.True(
                 Regex.Matches(verificationHtml, "valid\\.md\\s+\\([0-9a-f]{40}\\)").Count >= 2,
                 "The Test list and specification card should both show the file's last committed revision.");
@@ -507,6 +511,16 @@ public sealed class CliWebHostTests : IDisposable
         var feedbackIndex = html.IndexOf(message, StringComparison.Ordinal);
         Assert.True(feedbackIndex > html.LastIndexOf("Optional comment", StringComparison.Ordinal));
         Assert.True(feedbackIndex < html.IndexOf("Executed by", StringComparison.Ordinal));
+    }
+
+    private static void AssertModeLinks(string html, bool patternPressed)
+    {
+        var patternLink = Regex.Match(html, "<a[^>]*>Test patterns</a>").Value;
+        var verificationLink = Regex.Match(html, "<a[^>]*>Verification</a>").Value;
+        Assert.Contains("href=\"/\"", patternLink, StringComparison.Ordinal);
+        Assert.Contains($"aria-pressed=\"{patternPressed}\"", patternLink, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("href=\"/?mode=verification\"", verificationLink, StringComparison.Ordinal);
+        Assert.Contains($"aria-pressed=\"{!patternPressed}\"", verificationLink, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ValidSpecification(string title) => $$"""

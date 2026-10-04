@@ -6,8 +6,8 @@
 
 <header class="d-flex justify-content-end mb-4">
     <div class="btn-group" role="group" aria-label="Specification view mode">
-        <a class="btn @(Model.IsVerificationMode ? "btn-outline-primary" : "btn-primary")" href="/" aria-pressed="@(!Model.IsVerificationMode)">Test patterns</a>
-        <a class="btn @(Model.IsVerificationMode ? "btn-primary" : "btn-outline-primary")" href="/?mode=verification" aria-pressed="@Model.IsVerificationMode">Verification</a>
+        <a class="btn @(Model.IsVerificationMode ? "btn-outline-primary" : "btn-primary")" href="/" aria-pressed="@(Model.IsVerificationMode ? "false" : "true")">Test patterns</a>
+        <a class="btn @(Model.IsVerificationMode ? "btn-primary" : "btn-outline-primary")" href="/?mode=verification" aria-pressed="@(Model.IsVerificationMode ? "true" : "false")">Verification</a>
     </div>
 </header>
 
