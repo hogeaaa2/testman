@@ -33,17 +33,19 @@ public sealed class GitSpecificationReference
             RunGit(identity.RepositoryRoot, "diff", "--cached", "--quiet", "HEAD", "--", identity.SourceFile),
             "The specification file has uncommitted index changes.");
 
-        var revisionResult = RunGit(identity.RepositoryRoot, "rev-parse", "HEAD");
-        RequireSuccess(revisionResult, "The Git HEAD revision could not be resolved.");
-
         return new GitSpecificationReference(
             identity,
-            revisionResult.Output.Trim());
+            ResolveLastCommittedRevision(identity));
     }
 
     public static string ResolveLastCommittedRevision(string specificationPath)
     {
         var identity = GitSpecificationIdentity.Resolve(specificationPath);
+        return ResolveLastCommittedRevision(identity);
+    }
+
+    private static string ResolveLastCommittedRevision(GitSpecificationIdentity identity)
+    {
         var revisionResult = RunGit(
             identity.RepositoryRoot,
             "log",

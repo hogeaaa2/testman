@@ -21,13 +21,19 @@ public sealed class GitSpecificationReferenceTests : IDisposable
     }
 
     [Fact]
-    public void Resolve_returns_repository_relative_identity_and_head_revision()
+    public void Resolve_returns_repository_relative_identity_and_last_file_revision()
     {
+        var specificationRevision = GitOutput("log", "-1", "--format=%H", "--", "specs/example.md");
+        File.WriteAllText(Path.Combine(repository, "other.txt"), "other");
+        Git("add", "other.txt");
+        Git("commit", "-m", "Change another file");
+
         var reference = GitSpecificationReference.Resolve(specificationPath);
 
         Assert.Equal(Path.GetFullPath(repository), reference.RepositoryRoot);
         Assert.Equal("specs/example.md", reference.SourceFile);
-        Assert.Equal(GitOutput("rev-parse", "HEAD"), reference.SpecificationRevision);
+        Assert.Equal(specificationRevision, reference.SpecificationRevision);
+        Assert.NotEqual(GitOutput("rev-parse", "HEAD"), reference.SpecificationRevision);
     }
 
     [Fact]
