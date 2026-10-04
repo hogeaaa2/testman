@@ -46,6 +46,39 @@ body {
   list-style-position: inside;
 }
 
+.verification-table {
+  min-width: 72rem;
+  table-layout: fixed;
+}
+
+.verification-table > :not(caption) > * > * {
+  overflow-wrap: anywhere;
+}
+
+.verification-col-id {
+  width: 6%;
+}
+
+.verification-col-steps {
+  width: 28%;
+}
+
+.verification-col-expected {
+  width: 26%;
+}
+
+.verification-col-previous {
+  width: 12%;
+}
+
+.verification-col-result {
+  width: 12%;
+}
+
+.verification-col-comment {
+  width: 16%;
+}
+
 .specification-card > summary {
   cursor: pointer;
   list-style: none;

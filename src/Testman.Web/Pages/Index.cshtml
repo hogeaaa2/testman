@@ -145,7 +145,15 @@
                             <div>@Html.Raw(title.CommonStepsHtml)</div>
                         </section>
                         <div class="table-responsive">
-                            <table class="table table-striped align-middle">
+                            <table class="table table-striped align-middle verification-table">
+                                <colgroup>
+                                    <col class="verification-col-id" />
+                                    <col class="verification-col-steps" />
+                                    <col class="verification-col-expected" />
+                                    <col class="verification-col-previous" />
+                                    <col class="verification-col-result" />
+                                    <col class="verification-col-comment" />
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th scope="col">Test ID</th>
@@ -170,12 +178,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <div class="d-flex flex-column gap-1 align-items-start">
-                                                        <span class="badge text-bg-primary">@testCase.PreviousResult.OutcomeLabel</span>
-                                                        <small>@testCase.PreviousResult.ExecutedAtLocal.ToString("g")</small>
-                                                        <small class="text-body-secondary">@testCase.PreviousResult.ExecutedBy</small>
-                                                        <small class="text-body-secondary">@testCase.PreviousResult.TestTargetName</small>
-                                                    </div>
+                                                    <span class="badge text-bg-primary">@testCase.PreviousResult.OutcomeLabel</span>
                                                 }
                                                 @if (testCase.History.Count > 0)
                                                 {
