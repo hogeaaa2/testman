@@ -4,12 +4,7 @@
     ViewData["Title"] = "Specifications";
 }
 
-<header class="d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between mb-4">
-    <div>
-        <p class="text-uppercase text-primary fw-semibold small mb-1">Test specifications</p>
-        <h1 class="h2 mb-1">Specification workspace</h1>
-        <p class="text-body-secondary mb-0">Review test coverage, then switch to verification when you are ready to execute.</p>
-    </div>
+<header class="d-flex justify-content-end mb-4">
     <div class="btn-group" role="group" aria-label="Specification view mode">
         <a class="btn @(Model.IsVerificationMode ? "btn-outline-primary" : "btn-primary")" href="/" aria-pressed="@(!Model.IsVerificationMode)">Test patterns</a>
         <a class="btn @(Model.IsVerificationMode ? "btn-primary" : "btn-outline-primary")" href="/?mode=verification" aria-pressed="@Model.IsVerificationMode">Verification</a>
