@@ -120,8 +120,16 @@ public sealed class CliWebHostTests : IDisposable
             Assert.Contains("Total 1", html, StringComparison.Ordinal);
             Assert.Contains("Not Tested 1", html, StringComparison.Ordinal);
             Assert.Contains("/lib/bootstrap/dist/css/bootstrap.min.", html, StringComparison.Ordinal);
+            var isolatedCssPath = Regex.Match(
+                html,
+                "href=\"([^\"]*testman\\.[^\"]*\\.styles\\.css)\"",
+                RegexOptions.CultureInvariant).Groups[1].Value;
+            Assert.NotEmpty(isolatedCssPath);
             Assert.DoesNotContain("cdn.", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("verification-table", html, StringComparison.Ordinal);
+
+            var isolatedCss = await client.GetStringAsync(isolatedCssPath);
+            Assert.Contains("a.navbar-brand", isolatedCss, StringComparison.Ordinal);
 
             var siteScript = await client.GetStringAsync("/js/site.js");
             Assert.Contains("storage?.getItem", siteScript, StringComparison.Ordinal);
