@@ -4,11 +4,18 @@
 
 このリポジトリの主目的は、高機能なテスト管理製品を作ることではありません。Architect、Implementer、Reviewerという異なる役割を持つAIエージェントが、仕様・実装・レビューを分担する開発プロセスを試すことを目的としています。
 
-## 現在の状態
+## Getting Started
 
-V0.1の実装を進めています。現在有効なテスト仕様形式は [test-format.md](docs/test-format.md)、未決事項は [open-questions.md](docs/open-questions.md) を参照してください。
+.NET 10 SDKを用意し、このリポジトリのルートディレクトリ（`testman`）をカレントディレクトリにして実行します。
 
-## 想定する利用方法
+```powershell
+dotnet build .\Testman.sln
+dotnet run --project .\src\Testman.Web\Testman.Web.csproj --no-build --no-launch-profile -- serve --specs "$PWD\testspecs\testman-v01.md" --db "$PWD\.testman\testman.db" --port 5000
+```
+
+ブラウザで `http://localhost:5000/` を開き、テスト仕様「仕様パスからの起動」が表示されることを確認します。`Test patterns` と `Verification` を切り替えると、同じ仕様の概要とテストケースを確認できます。終了するときはターミナルで `Ctrl+C` を押します。DBは `.testman/testman.db` に作成され、Gitの管理対象には含まれません。ポート5000が使用中の場合は、起動コマンドの `--port` を空いているポートに変更し、ブラウザでも同じポートを指定してください。
+
+## 利用方法
 
 1. 利用者がGit管理されたテスト仕様ファイルを作成・更新する。
 2. `testman` が仕様ファイルを読み込む。
@@ -31,8 +38,8 @@ V0.1の実装を進めています。現在有効なテスト仕様形式は [te
 
 - [要求仕様](docs/requirements.md)
 - [製品コンセプト](docs/product-concept.md)
-- [テスト仕様形式の候補](docs/test-format-options.md)
 - [正式なテスト仕様形式](docs/test-format.md)
+- [要求とテストケースの対応](docs/traceability.md)
 - [Web UI](docs/web-ui.md)
 - [データベース](docs/database.md)
 - [CLIと起動方法](docs/cli.md)
