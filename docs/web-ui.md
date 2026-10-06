@@ -87,7 +87,7 @@ Test listでは仕様Markdownファイルのパスに続けて、そのファイ
 - 検証実施者名
 - テスト対象名
 
-Previous result列内で展開する履歴では、従来Git commit SHAを表示していた位置にテスト対象名を表示する。仕様MarkdownのGit commit SHAは結果に保存し続けるが、この履歴表示ではテスト対象名を優先し、SHAを表示しない。過去の仕様本文はGitで確認し、Web UIでは復元表示しない。
+Previous result列内で展開する履歴には、各実施結果のテスト対象名を表示する。仕様MarkdownのGit commit SHAは結果に保存するが、この履歴表示には出さない。過去の仕様本文はGitで確認し、Web UIでは復元表示しない。
 
 ## エラー表示
 
