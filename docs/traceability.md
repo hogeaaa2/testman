@@ -1,27 +1,19 @@
 # 要求とテストケースの対応
 
-## 対象と読み方
-
-この表は、現行の要求IDと、対応を確認できたテストケースを結び付ける。要求IDの対象範囲は [要求IDの採番ルール](requirement-ids.md) に従う。対象テスト仕様はGit管理された正式形式の [testman-v01.md](../testspecs/testman-v01.md) とし、形式比較用の候補や未追跡ファイルは含めない。
-
-右列は「リポジトリ相対パス#Test ID」で記載する。Test IDはファイル内でのみ一意のため、ID単体では参照しない。複数ケースが対応する要求は行を分ける。`-` は対応を確認できたテストケースがないことを表し、対応を推測で補わない。表に載せた対応はテスト仕様の存在を示すもので、テストの実行・合格や要求の全境界条件の網羅を証明するものではない。
-
-現行の `testman-v01.md` の結果登録・履歴に関するケースは、必須のテスト対象名を入力する手順がなく、Historyに仕様SHAが表示されるという現行仕様と異なる期待も含む。このため、該当ケースは現行要求との対応確認に使用しない。テスト仕様が更新されて整合を確認できた時点で表へ追加する。
-
 | 要求ID | 対応するテストケース |
 |---|---|
 | REQ-0001 | - |
 | REQ-0002 | - |
-| REQ-0004 | - |
-| REQ-0005 | - |
+| REQ-0004 | `testspecs/testman-v01.md#TC-1` |
+| REQ-0005 | `testspecs/testman-v01.md#TC-5` |
 | REQ-0006 | - |
 | REQ-0007 | - |
 | REQ-0008 | - |
 | REQ-0009 | - |
 | REQ-0010 | `testspecs/testman-v01.md#TC-1` |
 | REQ-0010 | `testspecs/testman-v01.md#TC-2` |
-| REQ-0011 | - |
-| REQ-0012 | - |
+| REQ-0011 | `testspecs/testman-v01.md#TC-2` |
+| REQ-0012 | `testspecs/testman-v01.md#TC-1` |
 | REQ-0013 | `testspecs/testman-v01.md#TC-3` |
 | REQ-0013 | `testspecs/testman-v01.md#TC-4` |
 | REQ-0014 | - |
@@ -37,13 +29,13 @@
 | REQ-0024 | - |
 | REQ-0025 | - |
 | REQ-0026 | - |
-| REQ-0027 | - |
+| REQ-0027 | `testspecs/testman-v01.md#TC-8` |
 | REQ-0028 | - |
 | REQ-0029 | - |
 | REQ-0030 | - |
 | REQ-0031 | - |
 | REQ-0032 | - |
-| REQ-0033 | - |
+| REQ-0033 | `testspecs/testman-v01.md#TC-8` |
 | REQ-0034 | - |
 | REQ-0035 | - |
 | REQ-0036 | - |
@@ -58,7 +50,9 @@
 | REQ-0053 | `testspecs/testman-v01.md#TC-5` |
 | REQ-0054 | - |
 | REQ-0055 | - |
-| REQ-0057 | - |
+| REQ-0057 | `testspecs/testman-v01.md#TC-5` |
+| REQ-0057 | `testspecs/testman-v01.md#TC-6` |
+| REQ-0057 | `testspecs/testman-v01.md#TC-7` |
 | REQ-0058 | `testspecs/testman-v01.md#TC-5` |
 | REQ-0059 | `testspecs/testman-v01.md#TC-6` |
 | REQ-0060 | `testspecs/testman-v01.md#TC-7` |
@@ -83,11 +77,11 @@
 | REQ-0079 | - |
 | REQ-0080 | - |
 | REQ-0081 | - |
-| REQ-0082 | - |
+| REQ-0082 | `testspecs/testman-v01.md#TC-8` |
 | REQ-0083 | - |
 | REQ-0084 | - |
 | REQ-0085 | - |
-| REQ-0086 | - |
+| REQ-0086 | `testspecs/testman-v01.md#TC-8` |
 | REQ-0087 | - |
 | REQ-0088 | - |
 | REQ-0089 | - |
@@ -162,9 +156,12 @@
 | REQ-0160 | - |
 | REQ-0161 | - |
 | REQ-0163 | - |
-| REQ-0164 | - |
-| REQ-0165 | - |
-| REQ-0166 | - |
+| REQ-0164 | `testspecs/testman-v01.md#TC-1` |
+| REQ-0164 | `testspecs/testman-v01.md#TC-2` |
+| REQ-0165 | `testspecs/testman-v01.md#TC-3` |
+| REQ-0165 | `testspecs/testman-v01.md#TC-4` |
+| REQ-0166 | `testspecs/testman-v01.md#TC-3` |
+| REQ-0166 | `testspecs/testman-v01.md#TC-4` |
 | REQ-0167 | - |
 | REQ-0168 | - |
 | REQ-0169 | - |
@@ -182,7 +179,7 @@
 | REQ-0180 | `testspecs/testman-v01.md#TC-1` |
 | REQ-0181 | `testspecs/testman-v01.md#TC-2` |
 | REQ-0182 | - |
-| REQ-0183 | - |
+| REQ-0183 | `testspecs/testman-v01.md#TC-1` |
 | REQ-0184 | `testspecs/testman-v01.md#TC-3` |
 | REQ-0184 | `testspecs/testman-v01.md#TC-4` |
 | REQ-0185 | - |
@@ -200,7 +197,7 @@
 | REQ-0197 | - |
 | REQ-0198 | - |
 | REQ-0199 | - |
-| REQ-0200 | - |
+| REQ-0200 | `testspecs/testman-v01.md#TC-6` |
 | REQ-0201 | - |
 | REQ-0202 | - |
 | REQ-0203 | - |
@@ -227,5 +224,3 @@
 | REQ-0224 | - |
 | REQ-0225 | - |
 | REQ-0227 | - |
-
-新しい要求IDを追加したときは行を追加し、対応するテストケースを確認できるまでは `-` とする。要求が削除されたときはその行を削除する。テストケースの内容や識別子が変わったときは対応を再確認する。
