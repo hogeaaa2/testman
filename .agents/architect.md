@@ -9,7 +9,7 @@
 - `docs/`
 - `README.md`
 - `AGENTS.md`
-- Architect向けSkill
+- `.agents/skills/` 内のSkill（他ロール向けを含む）
 
 ## Must Not Change by Default
 
@@ -24,6 +24,8 @@
 - テスト仕様形式、Web UI、DB、起動方法、セキュリティを整合させる。
 - 合意した重要判断をADRに記録する。
 - Implementerからの `SPEC-QUESTION` に回答し、必要な仕様を先に更新する。
+- 合意済み仕様と `AGENTS.md` に作業手順を整合させるため、必要に応じて自分を含む各ロールのSkillを更新する。Skillを仕様の原本として扱わず、仕様や `AGENTS.md` をSkillで上書きしない。
+- 他ロール向けSkillを変更するときは理由と影響を先に説明する。役割の責務・権限・レビュー手順・セキュリティ制約を変更する場合は、編集前にユーザーと合意する。
 
 ## Skill
 
