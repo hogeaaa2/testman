@@ -44,8 +44,10 @@ public sealed class GitSpecificationReference
         return ResolveLastCommittedRevision(identity);
     }
 
-    private static string ResolveLastCommittedRevision(GitSpecificationIdentity identity)
+    public static string ResolveLastCommittedRevision(GitSpecificationIdentity identity)
     {
+        ArgumentNullException.ThrowIfNull(identity);
+
         var revisionResult = RunGit(
             identity.RepositoryRoot,
             "log",

@@ -66,6 +66,78 @@ public sealed class ResultSubmissionCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public void Saved_results_remain_distinct_when_page_content_refreshes_the_git_revision()
+    {
+        var saved = coordinator.Submit(new ResultSubmissionRequest(
+            "Tester",
+            "app.exe",
+            [Input("TC-1", "pass"), Input("TC-2", "blocked")],
+            ConfirmPartial: false));
+        Assert.Equal(ResultSubmissionStatus.Saved, saved.Status);
+        var source = new SpecificationPageContentSource(
+            specificationPath, directory, new ResultHistoryStore(databasePath));
+
+        var firstFile = Assert.Single(source.Load().Files);
+        var firstCases = Assert.Single(firstFile.Titles).VerificationCases;
+        Assert.Equal(TestResultOutcome.Pass, firstCases[0].PreviousResult?.Outcome);
+        Assert.Equal(TestResultOutcome.Blocked, firstCases[1].PreviousResult?.Outcome);
+
+        File.AppendAllText(specificationPath, "\n");
+        Git("add", "spec.md");
+        Git("commit", "-m", "Update specification");
+
+        var refreshedFile = Assert.Single(source.Load().Files);
+        Assert.NotEqual(firstFile.SpecificationRevision, refreshedFile.SpecificationRevision);
+        Assert.Equal(
+            GitSpecificationReference.ResolveLastCommittedRevision(specificationPath),
+            refreshedFile.SpecificationRevision);
+        var refreshedCases = Assert.Single(refreshedFile.Titles).VerificationCases;
+        Assert.Equal(["TC-1", "TC-2"], refreshedCases.Select(testCase => testCase.Id));
+        Assert.Equal(TestResultOutcome.Pass, refreshedCases[0].PreviousResult?.Outcome);
+        Assert.Equal(TestResultOutcome.Blocked, refreshedCases[1].PreviousResult?.Outcome);
+        Assert.All(refreshedCases, testCase =>
+            Assert.Equal(firstFile.SpecificationRevision, Assert.Single(testCase.History).SpecificationRevision));
+    }
+
+    [Fact]
+    public void Page_content_rechecks_git_identity_on_each_load_and_recovers_after_failure()
+    {
+        var saved = coordinator.Submit(new ResultSubmissionRequest(
+            "Tester",
+            "app.exe",
+            [Input("TC-1", "pass"), Input("TC-2", "blocked")],
+            ConfirmPartial: false));
+        Assert.Equal(ResultSubmissionStatus.Saved, saved.Status);
+        var source = new SpecificationPageContentSource(
+            specificationPath, directory, new ResultHistoryStore(databasePath));
+        var firstFile = Assert.Single(source.Load().Files);
+        Assert.NotNull(firstFile.SpecificationRevision);
+
+        var gitDirectory = Path.Combine(directory, ".git");
+        var hiddenGitDirectory = Path.Combine(directory, ".git-hidden");
+        Directory.Move(gitDirectory, hiddenGitDirectory);
+        try
+        {
+            var unavailableFile = Assert.Single(source.Load().Files);
+            Assert.Null(unavailableFile.SpecificationRevision);
+            Assert.All(Assert.Single(unavailableFile.Titles).VerificationCases, testCase =>
+            {
+                Assert.Null(testCase.PreviousResult);
+                Assert.Empty(testCase.History);
+            });
+        }
+        finally
+        {
+            Directory.Move(hiddenGitDirectory, gitDirectory);
+        }
+
+        var recoveredFile = Assert.Single(source.Load().Files);
+        Assert.Equal(firstFile.SpecificationRevision, recoveredFile.SpecificationRevision);
+        Assert.All(Assert.Single(recoveredFile.Titles).VerificationCases, testCase =>
+            Assert.Single(testCase.History));
+    }
+
+    [Fact]
     public void Submit_rejects_no_selection_and_tampered_case_identity()
     {
         var empty = coordinator.Submit(new ResultSubmissionRequest(

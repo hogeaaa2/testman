@@ -100,6 +100,28 @@ public sealed class GitSpecificationReferenceTests : IDisposable
     }
 
     [Fact]
+    public void ResolveLastCommittedRevision_reuses_an_existing_identity()
+    {
+        var identity = GitSpecificationIdentity.Resolve(specificationPath);
+        var specificationRevision = GitOutput("log", "-1", "--format=%H", "--", "specs/example.md");
+        File.WriteAllText(Path.Combine(repository, "other.txt"), "other");
+        Git("add", "other.txt");
+        Git("commit", "-m", "Change another file");
+
+        var revision = GitSpecificationReference.ResolveLastCommittedRevision(identity);
+
+        Assert.Equal(specificationRevision, revision);
+        Assert.NotEqual(GitOutput("rev-parse", "HEAD"), revision);
+    }
+
+    [Fact]
+    public void ResolveLastCommittedRevision_rejects_a_null_identity()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            GitSpecificationReference.ResolveLastCommittedRevision((GitSpecificationIdentity)null!));
+    }
+
+    [Fact]
     public void ResolveLastCommittedRevision_rejects_an_untracked_file()
     {
         var untracked = Path.Combine(repository, "specs", "untracked.md");

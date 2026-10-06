@@ -12,35 +12,58 @@ public sealed class SpecificationPageContentSource(
     {
         var catalog = SpecificationCatalog.Load(specificationPath, workingDirectory);
         var fullSpecificationPath = Path.GetFullPath(specificationPath, workingDirectory);
+        var identities = new Dictionary<string, GitSpecificationIdentity?>(
+            OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         return SpecificationPageContent.Create(
             catalog,
             ReadHistory,
             showFileSummaries: Directory.Exists(fullSpecificationPath),
             resolveRevision: ResolveRevision);
-    }
 
-    private IReadOnlyList<TestResultRecord> ReadHistory(string sourcePath, string testCaseId)
-    {
-        try
+        GitSpecificationIdentity? ResolveIdentity(string sourcePath)
         {
-            var identity = GitSpecificationIdentity.Resolve(sourcePath);
-            return resultHistory.ReadHistory(identity, testCaseId);
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
-        {
-            return [];
-        }
-    }
+            if (identities.TryGetValue(sourcePath, out var identity))
+            {
+                return identity;
+            }
 
-    private static string? ResolveRevision(string sourcePath)
-    {
-        try
-        {
-            return GitSpecificationReference.ResolveLastCommittedRevision(sourcePath);
+            try
+            {
+                identity = GitSpecificationIdentity.Resolve(sourcePath);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+            {
+                identity = null;
+            }
+
+            identities.Add(sourcePath, identity);
+            return identity;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+
+        IReadOnlyList<TestResultRecord> ReadHistory(string sourcePath, string testCaseId)
         {
-            return null;
+            try
+            {
+                var identity = ResolveIdentity(sourcePath);
+                return identity is null ? [] : resultHistory.ReadHistory(identity, testCaseId);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+            {
+                return [];
+            }
+        }
+
+        string? ResolveRevision(string sourcePath)
+        {
+            try
+            {
+                var identity = ResolveIdentity(sourcePath);
+                return identity is null ? null : GitSpecificationReference.ResolveLastCommittedRevision(identity);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+            {
+                return null;
+            }
         }
     }
 }
